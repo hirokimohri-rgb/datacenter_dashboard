@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Infrastructure Investment Dashboard (2021-2025)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* 元のスタイルを維持 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', 'Inter', system-ui, sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .metric-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.15s ease;
+      color: #475569;
+    }
+    .filter-btn:hover { border-color: #3b82f6; color: #3b82f6; }
+    .filter-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .category-row {
+      display: grid;
+      grid-template-columns: 2fr repeat(5, 1fr) 80px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      align-items: center;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 12px;
+    }
+    .category-row:hover { background: #f8fafc; }
+    .category-row.selected { background: #eff6ff; border-left: 3px solid #3b82f6; }
+    .deal-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 12px;
+      align-items: center;
+    }
+    .deal-row:hover { background: #f8fafc; }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .year-cell {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    select {
+      padding: 6px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      background: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+    // Rechartsから必要なコンポーネントを抽出
+    const { 
+      AreaChart, Area, LineChart, Line, XAxis, YAxis, 
+      CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+    } = Recharts;
+
+    // --- データ定義 (中身は変更なしのため省略して記載しますが、実際のコードには含めています) ---
+    const categoryMeta = {
+      dc_general: { name: 'Data Centers (General)', nameJa: 'データセンター（汎用）', color: '#2563eb', group: 'DC/Computing' },
+      dc_modular: { name: 'Modular Data Centers', nameJa: 'モジュラーDC', color: '#3b82f6', group: 'DC/Computing' },
+      ee_computing: { name: 'Energy Efficient Computing', nameJa: '省エネコンピューティング', color: '#7c3aed', group: 'DC/Computing' },
+      ee_chips: { name: 'Energy Efficient Chips', nameJa: '省エネチップ', color: '#6d28d9', group: 'DC/Computing' },
+      cooling_immersion: { name: 'Liquid Cooling (Immersion)', nameJa: '液浸冷却', color: '#1d4ed8', group: 'DC/Computing' },
+      cooling_d2c: { name: 'Liquid Cooling (D2C)', nameJa: 'Direct-to-Chip冷却', color: '#1e40af', group: 'DC/Computing' },
+      nuclear_fusion: { name: 'Nuclear Fusion', nameJa: '核融合', color: '#059669', group: 'Generation' },
+      nuclear_micro: { name: 'Nuclear - Microreactor', nameJa: '原子力 - マイクロ炉', color: '#16a34a', group: 'Generation' },
+      nuclear_smr: { name: 'Nuclear - SMR', nameJa: '原子力 - SMR', color: '#22c55e', group: 'Generation' },
+      nuclear_other: { name: 'Nuclear Fission (Other)', nameJa: '原子力（その他）', color: '#15803d', group: 'Generation' },
+      geothermal: { name: 'Geothermal', nameJa: '地熱', color: '#ea580c', group: 'Generation' },
+      grid_analytics: { name: 'Grid - Analytics & Control', nameJa: '送電網 - 解析・制御', color: '#0891b2', group: 'Grid' },
+      grid_der: { name: 'Grid - DER Management', nameJa: '送電網 - DER管理', color: '#0e7490', group: 'Grid' },
+      grid_transformer: { name: 'Grid - Transformers', nameJa: '送電網 - 変圧器', color: '#06b6d4', group: 'Grid' },
+      grid_cables: { name: 'Grid - Cables/Wires', nameJa: '送電網 - ケーブル', color: '#0284c7', group: 'Grid' },
+      grid_wildfire: { name: 'Grid - Outage/Wildfire', nameJa: '送電網 - 災害管理', color: '#14b8a6', group: 'Grid' },
+      storage_lithium: { name: 'Storage - Lithium', nameJa: '蓄電（リチウム）', color: '#be185d', group: 'Storage' },
+      storage_flow: { name: 'Storage - Flow Battery', nameJa: '蓄電（フロー電池）', color: '#c026d3', group: 'Storage' },
+      storage_thermal: { name: 'Storage - Thermal', nameJa: '蓄電（熱）', color: '#f59e0b', group: 'Storage' },
+      storage_mech: { name: 'Storage - Mechanical', nameJa: '蓄電（機械式）', color: '#a21caf', group: 'Storage' },
+      storage_sodium: { name: 'Storage - Sodium', nameJa: '蓄電（ナトリウム）', color: '#e11d48', group: 'Storage' },
+      storage_other: { name: 'Storage - Other', nameJa: '蓄電（その他）', color: '#db2777', group: 'Storage' },
+      solar: { name: 'Solar', nameJa: '太陽光', color: '#fbbf24', group: 'Other' },
+      wind: { name: 'Wind', nameJa: '風力', color: '#34d399', group: 'Other' },
+      hydrogen: { name: 'Hydrogen', nameJa: '水素', color: '#60a5fa', group: 'Other' },
+      buildings: { name: 'Buildings/HVAC', nameJa: 'ビル/空調', color: '#f472b6', group: 'Other' },
+      other: { name: 'Other', nameJa: 'その他', color: '#94a3b8', group: 'Other' },
+    };
+
+    const categoryYearData = {"ee_computing":{"2025":{"count":16,"amount":1954.4},"2024":{"count":16,"amount":906.0},"2023":{"count":8,"amount":164.5},"2022":{"count":8,"amount":458.2},"2021":{"count":7,"amount":188.6}},"storage_other":{"2025":{"count":33,"amount":1646.5},"2024":{"count":38,"amount":1121.4},"2023":{"count":50,"amount":741.0},"2022":{"count":56,"amount":779.9},"2021":{"count":44,"amount":497.2}},"nuclear_micro":{"2025":{"count":4,"amount":1071.0},"2024":{"count":4,"amount":559.2},"2023":{"count":4,"amount":246.9},"2022":{"count":1,"amount":0.3},"2021":{"count":2,"amount":1.9}},"geothermal":{"2025":{"count":10,"amount":747.7},"2024":{"count":15,"amount":641.6},"2023":{"count":10,"amount":375.1},"2022":{"count":10,"amount":284.6},"2021":{"count":11,"amount":135.0}},"nuclear_other":{"2025":{"count":18,"amount":1464.4},"2024":{"count":11,"amount":331.2},"2023":{"count":6,"amount":104.8},"2022":{"count":5,"amount":1099.7},"2021":{"count":6,"amount":145.8}},"solar":{"2025":{"count":57,"amount":1298.9},"2024":{"count":73,"amount":897.1},"2023":{"count":108,"amount":5827.7},"2022":{"count":98,"amount":2868.8},"2021":{"count":104,"amount":1766.7}},"storage_mech":{"2025":{"count":4,"amount":394.4},"2024":{"count":6,"amount":426.5},"2023":{"count":4,"amount":150.7},"2022":{"count":2,"amount":0.0},"2021":{"count":6,"amount":154.8}},"other":{"2025":{"count":66,"amount":1193.2},"2024":{"count":108,"amount":1428.9},"2023":{"count":123,"amount":2292.2},"2022":{"count":111,"amount":3920.1},"2021":{"count":119,"amount":1895.8}},"storage_lithium":{"2025":{"count":18,"amount":397.4},"2024":{"count":34,"amount":754.6},"2023":{"count":35,"amount":2633.5},"2022":{"count":49,"amount":1938.9},"2021":{"count":44,"amount":7077.8}},"grid_transformer":{"2025":{"count":4,"amount":155.0},"2024":{"count":1,"amount":12.4},"2023":{"count":2,"amount":17.8},"2022":{"count":1,"amount":3.9}},"grid_der":{"2025":{"count":12,"amount":186.3},"2024":{"count":14,"amount":271.6},"2023":{"count":13,"amount":229.7},"2022":{"count":19,"amount":485.0},"2021":{"count":21,"amount":238.5}},"grid_wildfire":{"2025":{"count":3,"amount":124.4},"2023":{"count":2,"amount":24.5},"2022":{"count":1,"amount":5.2},"2021":{"count":3,"amount":9.3}},"nuclear_smr":{"2025":{"count":3,"amount":122.0},"2024":{"count":3,"amount":56.3},"2023":{"count":3,"amount":4.0},"2022":{"count":1,"amount":30.0},"2021":{"count":4,"amount":195.0}},"dc_modular":{"2025":{"count":3,"amount":88.5},"2024":{"count":2,"amount":60.0},"2023":{"count":2,"amount":62.0},"2021":{"count":1,"amount":6.4}},"dc_general":{"2025":{"count":21,"amount":6480.5},"2024":{"count":10,"amount":7362.0},"2023":{"count":3,"amount":36.7},"2022":{"count":6,"amount":93.8},"2021":{"count":5,"amount":379.0}},"nuclear_fusion":{"2025":{"count":22,"amount":1966.0},"2024":{"count":23,"amount":1631.3},"2023":{"count":22,"amount":572.7},"2022":{"count":10,"amount":577.1},"2021":{"count":10,"amount":2763.4}},"hydrogen":{"2025":{"count":40,"amount":573.9},"2024":{"count":54,"amount":1408.4},"2023":{"count":62,"amount":1849.1},"2022":{"count":79,"amount":1848.6},"2021":{"count":59,"amount":1023.4}},"grid_analytics":{"2025":{"count":13,"amount":286.5},"2024":{"count":22,"amount":268.6},"2023":{"count":16,"amount":117.3},"2022":{"count":13,"amount":366.4},"2021":{"count":19,"amount":745.5}},"buildings":{"2025":{"count":66,"amount":1573.7},"2024":{"count":89,"amount":958.8},"2023":{"count":127,"amount":2563.6},"2022":{"count":92,"amount":2362.1},"2021":{"count":104,"amount":1505.5}},"storage_flow":{"2025":{"count":9,"amount":82.8},"2024":{"count":7,"amount":486.7},"2023":{"count":10,"amount":461.1},"2022":{"count":9,"amount":564.1},"2021":{"count":7,"amount":293.9}},"wind":{"2025":{"count":9,"amount":88.8},"2024":{"count":26,"amount":207.5},"2023":{"count":22,"amount":142.6},"2022":{"count":23,"amount":213.7},"2021":{"count":23,"amount":292.2}},"cooling_d2c":{"2025":{"count":2,"amount":0.0},"2024":{"count":2,"amount":24.0},"2023":{"count":3,"amount":21.0},"2022":{"count":2,"amount":43.3},"2021":{"count":2,"amount":2.7}},"ee_chips":{"2025":{"count":4,"amount":107.8},"2024":{"count":9,"amount":701.9},"2023":{"count":4,"amount":180.7},"2022":{"count":2,"amount":39.7}},"storage_thermal":{"2025":{"count":10,"amount":83.7},"2024":{"count":18,"amount":228.9},"2023":{"count":15,"amount":200.8},"2022":{"count":8,"amount":97.9},"2021":{"count":11,"amount":145.8}},"cooling_immersion":{"2025":{"count":2,"amount":153.0},"2024":{"count":4,"amount":180.5},"2023":{"count":1,"amount":81.0},"2022":{"count":2,"amount":62.0},"2021":{"count":3,"amount":2.2}},"storage_sodium":{"2025":{"count":4,"amount":112.0},"2024":{"count":6,"amount":110.4},"2023":{"count":3,"amount":10.0},"2022":{"count":4,"amount":64.7},"2021":{"count":3,"amount":41.2}},"grid_cables":{"2025":{"count":1,"amount":75.0},"2024":{"count":4,"amount":50.1},"2023":{"count":1,"amount":24.9},"2022":{"count":1,"amount":154.0},"2021":{"count":2,"amount":33.0}}};
+    const allDeals = [{"company":"Vantage Data Centers","amount":6400.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"Vantage Data Centers","amount":3000.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"Northvolt","amount":2750.0,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"Sweden","category":"storage_lithium"},{"company":"Commonwealth Fusion Systems","amount":1800.0,"quarter":"2021/Q4","year":"2021","stage":"Series B","country":"United States","category":"nuclear_fusion"},{"company":"Lineage Logistics","amount":1700.0,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"United States","category":"other"},{"company":"Vantage Data Centers","amount":1600.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"Svolt","amount":1600.0,"quarter":"2021/Q3","year":"2021","stage":"Series B","country":"China","category":"storage_lithium"},{"company":"Yingfa Group","amount":1450.0,"quarter":"2023/Q1","year":"2023","stage":"Growth Equity","country":"China","category":"solar"},{"company":"Crusoe","amount":1375.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"ee_computing"},{"company":"Base Power Company","amount":1000.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_other"},{"company":"Svolt","amount":942.0,"quarter":"2021/Q4","year":"2021","stage":"Series B","country":"China","category":"storage_lithium"},{"company":"Verkor","amount":907.0,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"France","category":"storage_lithium"},{"company":"Pacific Fusion","amount":900.0,"quarter":"2024/Q4","year":"2024","stage":"Series A","country":"United States","category":"nuclear_fusion"},{"company":"Octopus Energy","amount":874.7,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"United Kingdom","category":"other"},{"company":"Commonwealth Fusion Systems","amount":863.0,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"United States","category":"nuclear_fusion"},{"company":"TerraPower","amount":750.0,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"X-Energy","amount":700.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Serentica Renewables","amount":672.9,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"India","category":"solar"},{"company":"TerraPower","amount":650.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"Digital Edge DC","amount":640.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"Singapore","category":"dc_general"},{"company":"Hithium","amount":622.0,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"China","category":"storage_lithium"},{"company":"Crusoe","amount":600.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"ee_computing"},{"company":"Octopus Energy","amount":600.0,"quarter":"2021/Q3","year":"2021","stage":"Growth Equity","country":"United Kingdom","category":"other"},{"company":"Scala Data Centers","amount":550.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"Brazil","category":"dc_general"},{"company":"Svolt","amount":533.7,"quarter":"2021/Q1","year":"2021","stage":"Series A","country":"China","category":"storage_lithium"},{"company":"Takanock","amount":500.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"X-Energy","amount":500.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Helion Energy","amount":500.0,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"EcoDataCenter","amount":485.7,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"Sweden","category":"dc_general"},{"company":"1Komma5","amount":467.9,"quarter":"2023/Q2","year":"2023","stage":"Series B","country":"Germany","category":"buildings"},{"company":"Fervo Energy","amount":462.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"Form Energy","amount":450.0,"quarter":"2022/Q4","year":"2022","stage":"Growth Equity","country":"United States","category":"storage_flow"},{"company":"Helion Energy","amount":425.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Form Energy","amount":405.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"storage_flow"},{"company":"Lightmatter","amount":400.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"ee_chips"},{"company":"Northvolt","amount":400.0,"quarter":"2023/Q2","year":"2023","stage":"Growth Equity","country":"Sweden","category":"storage_lithium"},{"company":"Claroty","amount":400.0,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"United States","category":"grid_analytics"},{"company":"Electric Hydrogen","amount":380.0,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"United States","category":"hydrogen"},{"company":"Palmetto","amount":375.0,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"United States","category":"solar"},{"company":"Gaojing Solar","amount":360.0,"quarter":"2022/Q3","year":"2022","stage":"Series B","country":"China","category":"solar"},{"company":"Kaer","amount":350.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"Singapore","category":"buildings"},{"company":"Crusoe","amount":350.0,"quarter":"2022/Q2","year":"2022","stage":"Growth Equity","country":"United States","category":"ee_computing"},{"company":"Highview Power","amount":323.2,"quarter":"2024/Q2","year":"2024","stage":"Growth Equity","country":"United Kingdom","category":"storage_mech"},{"company":"EnerVenue","amount":308.1,"quarter":"2024/Q2","year":"2024","stage":"Series B","country":"United States","category":"storage_other"},{"company":"newcleo","amount":307.7,"quarter":"2022/Q2","year":"2022","stage":"Series A","country":"France","category":"nuclear_other"},{"company":"Radiant","amount":300.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"Our Next Energy","amount":300.0,"quarter":"2023/Q1","year":"2023","stage":"Series B","country":"United States","category":"storage_lithium"},{"company":"Lunar Energy","amount":300.0,"quarter":"2022/Q3","year":"2022","stage":"Seed","country":"United States","category":"grid_der"},{"company":"Monolith","amount":300.0,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"United States","category":"hydrogen"},{"company":"TAE Technologies","amount":280.0,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Mainspring Energy","amount":258.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"buildings"},{"company":"Deep Green","amount":252.6,"quarter":"2024/Q1","year":"2024","stage":"Series A","country":"United Kingdom","category":"dc_general"},{"company":"TAE Technologies","amount":250.0,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Fervo Energy","amount":244.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"X-Energy","amount":235.0,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Sunfire","amount":233.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"Germany","category":"hydrogen"},{"company":"Firmus Technologies","amount":220.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"Singapore","category":"ee_computing"},{"company":"Torus","amount":200.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_mech"},{"company":"Base Power Company","amount":200.0,"quarter":"2025/Q2","year":"2025","stage":"Series B","country":"United States","category":"storage_other"},{"company":"X-Energy","amount":200.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Eavor Technologies","amount":182.0,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"Canada","category":"geothermal"},{"company":"Highview Power","amount":171.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United Kingdom","category":"storage_mech"},{"company":"Auradine","amount":153.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"cooling_immersion"},{"company":"Antora Energy","amount":150.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"United States","category":"storage_thermal"},{"company":"Type One Energy","amount":135.0,"quarter":"2025/Q3","year":"2025","stage":"Series A","country":"United States","category":"nuclear_fusion"},{"company":"Fervo Energy","amount":135.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"Zap Energy","amount":115.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Last Energy","amount":100.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"Fervo Energy","amount":100.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"Kaluza","amount":99.0,"quarter":"2024/Q2","year":"2024","stage":"Series B","country":"United Kingdom","category":"grid_der"},{"company":"Exodigo","amount":96.0,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"Israel","category":"grid_analytics"},{"company":"Amperesand","amount":80.0,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Singapore","category":"grid_transformer"},{"company":"Blue Current","amount":80.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_lithium"},{"company":"VEIR","amount":75.0,"quarter":"2025/Q1","year":"2025","stage":"Series B","country":"United States","category":"grid_cables"},{"company":"Daylight","amount":75.0,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"United States","category":"grid_der"},{"company":"Antares","amount":71.0,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"United States","category":"nuclear_micro"},{"company":"Smart Wires","amount":65.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"grid_analytics"},{"company":"Radiant","amount":65.0,"quarter":"2025/Q2","year":"2025","stage":"Series A","country":"United States","category":"nuclear_other"},{"company":"Corvus Energy","amount":60.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"Canada","category":"storage_lithium"},{"company":"Gridware","amount":55.0,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"United States","category":"grid_wildfire"},{"company":"Natron Energy","amount":55.4,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_sodium"},{"company":"Exowatt","amount":50.0,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"United States","category":"dc_modular"},{"company":"Blykalla","amount":50.0,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Sweden","category":"nuclear_smr"},{"company":"Eavor","amount":50.0,"quarter":"2025/Q1","year":"2025","stage":"Series A","country":"Canada","category":"geothermal"}];
+
+    const years = ['2021', '2022', '2023', '2024', '2025'];
+    const groups = ['DC/Computing', 'Generation', 'Grid', 'Storage', 'Other'];
+    const stages = ['Seed', 'Series A', 'Series B', 'Growth Equity'];
+
+    function Dashboard() {
+      const [selectedCategory, setSelectedCategory] = useState(null);
+      const [selectedYear, setSelectedYear] = useState('all');
+      const [selectedStage, setSelectedStage] = useState('all');
+      const [selectedGroup, setSelectedGroup] = useState('all');
+      const [sortBy, setSortBy] = useState('total');
+
+      const categoryStats = useMemo(() => {
+        return Object.entries(categoryYearData).map(([id, yearData]) => {
+          const meta = categoryMeta[id] || { name: id, nameJa: id, color: '#94a3b8', group: 'Other' };
+          const total = Object.values(yearData).reduce((sum, y) => sum + y.amount, 0);
+          const count = Object.values(yearData).reduce((sum, y) => sum + y.count, 0);
+          const y2024 = yearData['2024']?.amount || 0;
+          const y2025 = yearData['2025']?.amount || 0;
+          const growth = y2024 > 0 ? ((y2025 - y2024) / y2024 * 100) : (y2025 > 0 ? 999 : 0);
+          return { id, ...meta, total, count, yearData, y2024, y2025, growth };
+        });
+      }, []);
+
+      const filteredCategories = useMemo(() => {
+        let cats = [...categoryStats];
+        if (selectedGroup !== 'all') cats = cats.filter(c => c.group === selectedGroup);
+        
+        cats.sort((a, b) => {
+          if (sortBy === 'total') return b.total - a.total;
+          if (sortBy === 'growth') return b.growth - a.growth;
+          if (sortBy === '2025') return (b.yearData['2025']?.amount || 0) - (a.yearData['2025']?.amount || 0);
+          return b.count - a.count;
+        });
+        return cats;
+      }, [categoryStats, selectedGroup, sortBy]);
+
+      const filteredDeals = useMemo(() => {
+        let deals = allDeals;
+        if (selectedCategory) deals = deals.filter(d => d.category === selectedCategory);
+        if (selectedYear !== 'all') deals = deals.filter(d => d.year === selectedYear);
+        if (selectedStage !== 'all') deals = deals.filter(d => d.stage === selectedStage);
+        if (selectedGroup !== 'all') {
+          const groupCats = Object.entries(categoryMeta).filter(([k,v]) => v.group === selectedGroup).map(([k]) => k);
+          deals = deals.filter(d => groupCats.includes(d.category));
+        }
+        return deals.sort((a, b) => b.amount - a.amount);
+      }, [selectedCategory, selectedYear, selectedStage, selectedGroup]);
+
+      const yearlyTrendData = useMemo(() => {
+        return years.map(year => {
+          const row = { year };
+          groups.forEach(group => {
+            const groupCats = categoryStats.filter(c => c.group === group);
+            row[group] = groupCats.reduce((sum, c) => sum + (c.yearData[year]?.amount || 0), 0) / 1000;
+          });
+          return row;
+        });
+      }, [categoryStats]);
+
+      const dcTrendData = useMemo(() => {
+        const dcCats = ['dc_general', 'ee_computing', 'cooling_immersion'];
+        return years.map(year => {
+          const row = { year };
+          dcCats.forEach(cat => {
+            row[cat] = categoryYearData[cat]?.[year]?.amount || 0;
+          });
+          return row;
+        });
+      }, []);
+
+      const selectedCatData = selectedCategory ? categoryStats.find(c => c.id === selectedCategory) : null;
+
+      return (
+        <div style={{ padding: '24px 40px', maxWidth: 1600, margin: '0 auto' }}>
+          <div style={{ marginBottom: 24 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700 }}>AI Infrastructure Investment Analysis</h1>
+            <p style={{ color: '#64748b' }}>エネルギー・電力セクター スタートアップ投資 (2021-2025)</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div className="metric-card"><strong>$100.6B</strong><p>総投資額</p></div>
+            <div className="metric-card"><strong>2,945</strong><p>総ディール数</p></div>
+            <div className="metric-card" style={{color:'#2563eb'}}><strong>$14.4B</strong><p>データセンター</p></div>
+            <div className="metric-card" style={{color:'#16a34a'}}><strong>$15.1B</strong><p>原子力(全体)</p></div>
+            <div className="metric-card" style={{color:'#ea580c'}}><strong>$2.2B</strong><p>地熱</p></div>
+            <div className="metric-card" style={{color:'#0891b2'}}><strong>$3.9B</strong><p>送電網関連</p></div>
+          </div>
+
+          <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+            {['all', ...groups].map(g => (
+              <button key={g} className={`filter-btn ${selectedGroup === g ? 'active' : ''}`} onClick={() => setSelectedGroup(g)}>{g}</button>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 20 }}>
+            <div className="card">
+              <div className="section-title">セクター別内訳 ($M)</div>
+              <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                {filteredCategories.map(cat => (
+                  <div key={cat.id} className={`category-row ${selectedCategory === cat.id ? 'selected' : ''}`} onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}>
+                    <span style={{ fontWeight: 500 }}>{cat.nameJa}</span>
+                    {years.map(y => <div key={y} className="year-cell">{Math.round(cat.yearData[y]?.amount || 0)}</div>)}
+                    <div style={{ textAlign: 'right', fontWeight: 600 }}>{cat.total >= 1000 ? `${(cat.total/1000).toFixed(1)}B` : `${Math.round(cat.total)}M`}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="section-title">投資トレンド ($B)</div>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={yearlyTrendData}>
+                  <XAxis dataKey="year" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="DC/Computing" stackId="1" fill="#2563eb" stroke="#2563eb" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="Generation" stackId="1" fill="#16a34a" stroke="#16a34a" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="Storage" stackId="1" fill="#db2777" stroke="#db2777" fillOpacity={0.6} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 20 }}>
+            <div className="section-title">主要ディール（$50M以上）</div>
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              {filteredDeals.slice(0, 30).map((deal, i) => (
+                <div key={i} className="deal-row">
+                  <span style={{ fontWeight: 600 }}>{deal.company}</span>
+                  <span style={{ color: '#2563eb', fontWeight: 700 }}>${deal.amount >= 1000 ? (deal.amount/1000).toFixed(1) + 'B' : deal.amount.toFixed(0) + 'M'}</span>
+                  <span>{deal.quarter}</span>
+                  <span className="badge" style={{background: '#dbeafe'}}>{deal.stage}</span>
+                  <span>{deal.country}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // React 18のレンダリング方式
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<Dashboard />);
+  </script>
+</body>
+</html>
