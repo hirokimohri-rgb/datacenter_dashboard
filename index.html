@@ -9,119 +9,57 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prop-types/15.8.1/prop-types.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Noto Sans JP', 'Inter', system-ui, sans-serif;
-      background: #ffffff;
-      color: #1e293b;
-    }
-    .card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-    .metric-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 16px;
-      text-align: center;
-    }
-    .filter-btn {
-      padding: 6px 14px;
-      border-radius: 6px;
-      border: 1px solid #e2e8f0;
-      background: #fff;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.15s ease;
-      color: #475569;
-    }
+    body { font-family: system-ui, sans-serif; background: #fff; color: #1e293b; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; }
+    .metric-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; text-align: center; }
+    .filter-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 11px; color: #475569; }
     .filter-btn:hover { border-color: #3b82f6; color: #3b82f6; }
     .filter-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
-    .category-row {
-      display: grid;
-      grid-template-columns: 2fr repeat(5, 1fr) 70px 60px;
-      padding: 8px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.15s ease;
-      align-items: center;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 11px;
-    }
-    .category-row:hover { background: #f8fafc; }
-    .category-row.selected { background: #eff6ff; border-left: 3px solid #3b82f6; }
-    .deal-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-      padding: 8px 12px;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 12px;
-      align-items: center;
-    }
+    .stage-btn { padding: 4px 10px; border-radius: 5px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 10px; color: #64748b; }
+    .stage-btn:hover { border-color: #8b5cf6; }
+    .stage-btn.active { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+    .cat-row { display: grid; grid-template-columns: 2fr repeat(5, 1fr) 65px 50px; padding: 6px 8px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 10px; align-items: center; }
+    .cat-row:hover { background: #f8fafc; }
+    .cat-row.selected { background: #eff6ff; border-left: 3px solid #3b82f6; }
+    .deal-row { display: grid; grid-template-columns: 2fr 0.7fr 0.7fr 1fr 1fr; padding: 6px 10px; border-bottom: 1px solid #f1f5f9; font-size: 10px; align-items: center; }
     .deal-row:hover { background: #f8fafc; }
-    .section-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #1e293b;
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 500;
-    }
-    select {
-      padding: 6px 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 12px;
-      color: #475569;
-      background: #fff;
-      cursor: pointer;
-    }
-    select:focus { outline: none; border-color: #3b82f6; }
+    .section-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; color: #1e293b; }
+    .badge { display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: 500; }
+    select { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 5px; font-size: 10px; color: #475569; background: #fff; }
     .year-cell { text-align: right; font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
   <div id="root"></div>
-  
   <script type="text/babel">
     const { useState, useMemo } = React;
-    const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, LineChart, Line, Legend } = Recharts;
+    const { AreaChart, Area, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } = Recharts;
 
-    // カテゴリマスタ
-    const categoryMeta = {
+    const catMeta = {
       dc_general: { name: 'データセンター（汎用）', color: '#2563eb', group: 'DC/Computing' },
       dc_modular: { name: 'モジュラーDC', color: '#3b82f6', group: 'DC/Computing' },
       ee_computing: { name: '省エネコンピューティング', color: '#7c3aed', group: 'DC/Computing' },
       ee_chips: { name: '省エネチップ', color: '#6d28d9', group: 'DC/Computing' },
       cooling_immersion: { name: '液浸冷却', color: '#1d4ed8', group: 'DC/Computing' },
-      cooling_d2c: { name: 'Direct-to-Chip冷却', color: '#1e40af', group: 'DC/Computing' },
+      cooling_d2c: { name: 'D2C冷却', color: '#1e40af', group: 'DC/Computing' },
       nuclear_fusion: { name: '核融合', color: '#059669', group: 'Generation' },
       nuclear_micro: { name: '原子力マイクロ炉', color: '#16a34a', group: 'Generation' },
       nuclear_smr: { name: '原子力SMR', color: '#22c55e', group: 'Generation' },
-      nuclear_other: { name: '原子力（その他）', color: '#15803d', group: 'Generation' },
+      nuclear_other: { name: '原子力（他）', color: '#15803d', group: 'Generation' },
       geothermal: { name: '地熱', color: '#ea580c', group: 'Generation' },
-      grid_analytics: { name: '送電網解析・制御', color: '#0891b2', group: 'Grid' },
+      grid_analytics: { name: '送電網解析', color: '#0891b2', group: 'Grid' },
       grid_der: { name: 'DER管理', color: '#0e7490', group: 'Grid' },
       grid_transformer: { name: '変圧器', color: '#06b6d4', group: 'Grid' },
       grid_cables: { name: 'ケーブル', color: '#0284c7', group: 'Grid' },
       grid_wildfire: { name: '災害管理', color: '#14b8a6', group: 'Grid' },
-      storage_lithium: { name: '蓄電（リチウム）', color: '#be185d', group: 'Storage' },
-      storage_flow: { name: '蓄電（フロー電池）', color: '#c026d3', group: 'Storage' },
+      storage_lithium: { name: '蓄電（Li）', color: '#be185d', group: 'Storage' },
+      storage_flow: { name: '蓄電（フロー）', color: '#c026d3', group: 'Storage' },
       storage_thermal: { name: '蓄電（熱）', color: '#f59e0b', group: 'Storage' },
-      storage_mech: { name: '蓄電（機械式）', color: '#a21caf', group: 'Storage' },
-      storage_sodium: { name: '蓄電（ナトリウム）', color: '#e11d48', group: 'Storage' },
-      storage_other: { name: '蓄電（その他）', color: '#db2777', group: 'Storage' },
+      storage_mech: { name: '蓄電（機械）', color: '#a21caf', group: 'Storage' },
+      storage_sodium: { name: '蓄電（Na）', color: '#e11d48', group: 'Storage' },
+      storage_other: { name: '蓄電（他）', color: '#db2777', group: 'Storage' },
       solar: { name: '太陽光', color: '#fbbf24', group: 'Other' },
       wind: { name: '風力', color: '#34d399', group: 'Other' },
       hydrogen: { name: '水素', color: '#60a5fa', group: 'Other' },
@@ -129,231 +67,154 @@
       other: { name: 'その他', color: '#94a3b8', group: 'Other' }
     };
 
-    // カテゴリ-年-ステージ別データ
-    const categoryYearStageData = {"ee_computing":{"2021":{"Seed":{"count":1,"amount":1.1},"Series A":{"count":1,"amount":8.0},"Series B":{"count":2,"amount":29.5},"Growth Equity":{"count":3,"amount":150.0}},"2022":{"Seed":{"count":1,"amount":0.2},"Series A":{"count":1,"amount":8.0},"Series B":{"count":1,"amount":100.0},"Growth Equity":{"count":5,"amount":350.0}},"2023":{"Seed":{"count":2,"amount":4.5},"Series A":{"count":3,"amount":60.0},"Series B":{"count":1,"amount":25.0},"Growth Equity":{"count":2,"amount":75.0}},"2024":{"Seed":{"count":2,"amount":6.0},"Series A":{"count":4,"amount":55.0},"Series B":{"count":3,"amount":145.0},"Growth Equity":{"count":7,"amount":700.0}},"2025":{"Seed":{"count":1,"amount":5.0},"Series A":{"count":3,"amount":44.4},"Series B":{"count":3,"amount":130.0},"Growth Equity":{"count":9,"amount":1775.0}}},"storage_other":{"2021":{"Seed":{"count":13,"amount":30.2},"Series A":{"count":11,"amount":100.0},"Series B":{"count":9,"amount":132.0},"Growth Equity":{"count":11,"amount":235.0}},"2022":{"Seed":{"count":15,"amount":35.9},"Series A":{"count":17,"amount":195.0},"Series B":{"count":11,"amount":234.0},"Growth Equity":{"count":13,"amount":315.0}},"2023":{"Seed":{"count":17,"amount":42.0},"Series A":{"count":14,"amount":169.0},"Series B":{"count":9,"amount":195.0},"Growth Equity":{"count":10,"amount":335.0}},"2024":{"Seed":{"count":8,"amount":23.4},"Series A":{"count":10,"amount":155.0},"Series B":{"count":9,"amount":433.0},"Growth Equity":{"count":11,"amount":510.0}},"2025":{"Seed":{"count":5,"amount":15.5},"Series A":{"count":5,"amount":56.0},"Series B":{"count":8,"amount":275.0},"Growth Equity":{"count":15,"amount":1300.0}}},"nuclear_micro":{"2021":{"Seed":{"count":1,"amount":0.9},"Series A":{"count":1,"amount":1.0}},"2022":{"Series A":{"count":1,"amount":0.3}},"2023":{"Series A":{"count":1,"amount":11.9},"Growth Equity":{"count":3,"amount":235.0}},"2024":{"Series A":{"count":1,"amount":59.2},"Growth Equity":{"count":3,"amount":500.0}},"2025":{"Series B":{"count":1,"amount":71.0},"Growth Equity":{"count":3,"amount":1000.0}}},"geothermal":{"2021":{"Seed":{"count":5,"amount":12.0},"Series A":{"count":3,"amount":43.0},"Series B":{"count":2,"amount":55.0},"Growth Equity":{"count":1,"amount":25.0}},"2022":{"Seed":{"count":3,"amount":9.6},"Series A":{"count":3,"amount":65.0},"Series B":{"count":2,"amount":110.0},"Growth Equity":{"count":2,"amount":100.0}},"2023":{"Seed":{"count":2,"amount":6.1},"Series A":{"count":3,"amount":77.0},"Series B":{"count":2,"amount":60.0},"Growth Equity":{"count":3,"amount":232.0}},"2024":{"Seed":{"count":2,"amount":7.6},"Series A":{"count":5,"amount":102.0},"Series B":{"count":3,"amount":153.0},"Growth Equity":{"count":5,"amount":379.0}},"2025":{"Seed":{"count":1,"amount":0.7},"Series A":{"count":3,"amount":85.0},"Series B":{"count":1,"amount":0.0},"Growth Equity":{"count":5,"amount":662.0}}},"nuclear_other":{"2021":{"Seed":{"count":3,"amount":5.8},"Series A":{"count":2,"amount":120.0},"Series B":{"count":1,"amount":20.0}},"2022":{"Seed":{"count":1,"amount":2.0},"Series A":{"count":2,"amount":347.7},"Growth Equity":{"count":2,"amount":750.0}},"2023":{"Seed":{"count":2,"amount":4.8},"Series A":{"count":2,"amount":50.0},"Series B":{"count":1,"amount":35.0},"Growth Equity":{"count":1,"amount":15.0}},"2024":{"Seed":{"count":2,"amount":6.2},"Series A":{"count":5,"amount":155.0},"Series B":{"count":2,"amount":70.0},"Growth Equity":{"count":2,"amount":100.0}},"2025":{"Seed":{"count":3,"amount":14.4},"Series A":{"count":7,"amount":200.0},"Series B":{"count":2,"amount":100.0},"Growth Equity":{"count":6,"amount":1150.0}}},"solar":{"2021":{"Seed":{"count":28,"amount":52.7},"Series A":{"count":29,"amount":295.0},"Series B":{"count":21,"amount":519.0},"Growth Equity":{"count":26,"amount":900.0}},"2022":{"Seed":{"count":22,"amount":48.8},"Series A":{"count":29,"amount":406.0},"Series B":{"count":23,"amount":714.0},"Growth Equity":{"count":24,"amount":1700.0}},"2023":{"Seed":{"count":17,"amount":35.7},"Series A":{"count":30,"amount":592.0},"Series B":{"count":30,"amount":1800.0},"Growth Equity":{"count":31,"amount":3400.0}},"2024":{"Seed":{"count":13,"amount":28.1},"Series A":{"count":24,"amount":269.0},"Series B":{"count":19,"amount":300.0},"Growth Equity":{"count":17,"amount":300.0}},"2025":{"Seed":{"count":6,"amount":13.9},"Series A":{"count":17,"amount":215.0},"Series B":{"count":19,"amount":570.0},"Growth Equity":{"count":15,"amount":500.0}}},"storage_mech":{"2021":{"Seed":{"count":2,"amount":4.8},"Series A":{"count":2,"amount":50.0},"Series B":{"count":1,"amount":0.0},"Growth Equity":{"count":1,"amount":100.0}},"2022":{"Series A":{"count":1,"amount":0.0},"Series B":{"count":1,"amount":0.0}},"2023":{"Seed":{"count":1,"amount":0.7},"Series A":{"count":1,"amount":50.0},"Series B":{"count":1,"amount":0.0},"Growth Equity":{"count":1,"amount":100.0}},"2024":{"Series A":{"count":2,"amount":53.3},"Series B":{"count":1,"amount":50.0},"Growth Equity":{"count":3,"amount":323.2}},"2025":{"Series A":{"count":1,"amount":23.4},"Growth Equity":{"count":3,"amount":371.0}}},"other":{"2021":{"Seed":{"count":26,"amount":45.8},"Series A":{"count":31,"amount":280.0},"Series B":{"count":28,"amount":420.0},"Growth Equity":{"count":34,"amount":1150.0}},"2022":{"Seed":{"count":21,"amount":38.1},"Series A":{"count":26,"amount":335.0},"Series B":{"count":26,"amount":697.0},"Growth Equity":{"count":38,"amount":2850.0}},"2023":{"Seed":{"count":22,"amount":42.2},"Series A":{"count":32,"amount":370.0},"Series B":{"count":28,"amount":505.0},"Growth Equity":{"count":41,"amount":1375.0}},"2024":{"Seed":{"count":18,"amount":32.9},"Series A":{"count":30,"amount":296.0},"Series B":{"count":25,"amount":400.0},"Growth Equity":{"count":35,"amount":700.0}},"2025":{"Seed":{"count":8,"amount":18.2},"Series A":{"count":18,"amount":172.0},"Series B":{"count":17,"amount":300.0},"Growth Equity":{"count":23,"amount":703.0}}},"storage_lithium":{"2021":{"Seed":{"count":6,"amount":12.8},"Series A":{"count":11,"amount":234.0},"Series B":{"count":13,"amount":2843.0},"Growth Equity":{"count":14,"amount":3988.0}},"2022":{"Seed":{"count":9,"amount":19.9},"Series A":{"count":13,"amount":209.0},"Series B":{"count":14,"amount":633.0},"Growth Equity":{"count":13,"amount":1077.0}},"2023":{"Seed":{"count":5,"amount":13.5},"Series A":{"count":9,"amount":130.0},"Series B":{"count":8,"amount":490.0},"Growth Equity":{"count":13,"amount":2000.0}},"2024":{"Seed":{"count":5,"amount":9.6},"Series A":{"count":9,"amount":95.0},"Series B":{"count":9,"amount":250.0},"Growth Equity":{"count":11,"amount":400.0}},"2025":{"Seed":{"count":2,"amount":7.4},"Series A":{"count":5,"amount":50.0},"Series B":{"count":4,"amount":60.0},"Growth Equity":{"count":7,"amount":280.0}}},"grid_transformer":{"2022":{"Series A":{"count":1,"amount":3.9}},"2023":{"Seed":{"count":1,"amount":2.8},"Series A":{"count":1,"amount":15.0}},"2024":{"Series A":{"count":1,"amount":12.4}},"2025":{"Series A":{"count":2,"amount":58.0},"Series B":{"count":1,"amount":17.0},"Growth Equity":{"count":1,"amount":80.0}}},"grid_der":{"2021":{"Seed":{"count":8,"amount":13.5},"Series A":{"count":5,"amount":50.0},"Series B":{"count":4,"amount":90.0},"Growth Equity":{"count":4,"amount":85.0}},"2022":{"Seed":{"count":4,"amount":10.0},"Series A":{"count":4,"amount":55.0},"Series B":{"count":5,"amount":120.0},"Growth Equity":{"count":6,"amount":300.0}},"2023":{"Seed":{"count":3,"amount":7.7},"Series A":{"count":4,"amount":52.0},"Series B":{"count":3,"amount":70.0},"Growth Equity":{"count":3,"amount":100.0}},"2024":{"Seed":{"count":2,"amount":5.6},"Series A":{"count":4,"amount":47.0},"Series B":{"count":5,"amount":120.0},"Growth Equity":{"count":3,"amount":99.0}},"2025":{"Seed":{"count":1,"amount":3.3},"Series A":{"count":3,"amount":33.0},"Series B":{"count":5,"amount":100.0},"Growth Equity":{"count":3,"amount":50.0}}},"grid_wildfire":{"2021":{"Seed":{"count":2,"amount":4.3},"Series A":{"count":1,"amount":5.0}},"2022":{"Series A":{"count":1,"amount":5.2}},"2023":{"Seed":{"count":1,"amount":4.5},"Series A":{"count":1,"amount":20.0}},"2025":{"Series B":{"count":2,"amount":81.4},"Growth Equity":{"count":1,"amount":43.0}}},"nuclear_smr":{"2021":{"Seed":{"count":1,"amount":3.0},"Series A":{"count":1,"amount":40.0},"Growth Equity":{"count":2,"amount":152.0}},"2022":{"Series A":{"count":1,"amount":30.0}},"2023":{"Seed":{"count":2,"amount":2.0},"Series A":{"count":1,"amount":2.0}},"2024":{"Series A":{"count":2,"amount":11.3},"Growth Equity":{"count":1,"amount":45.0}},"2025":{"Seed":{"count":1,"amount":22.0},"Series A":{"count":1,"amount":50.0},"Growth Equity":{"count":1,"amount":50.0}}},"dc_modular":{"2021":{"Series A":{"count":1,"amount":6.4}},"2023":{"Series A":{"count":1,"amount":7.0},"Growth Equity":{"count":1,"amount":55.0}},"2024":{"Series A":{"count":1,"amount":20.0},"Series B":{"count":1,"amount":40.0}},"2025":{"Seed":{"count":1,"amount":3.5},"Series A":{"count":1,"amount":50.0},"Series B":{"count":1,"amount":35.0}}},"dc_general":{"2021":{"Series A":{"count":1,"amount":12.0},"Series B":{"count":1,"amount":50.0},"Growth Equity":{"count":3,"amount":317.0}},"2022":{"Seed":{"count":1,"amount":3.8},"Series A":{"count":2,"amount":40.0},"Growth Equity":{"count":3,"amount":50.0}},"2023":{"Seed":{"count":1,"amount":1.7},"Series A":{"count":1,"amount":15.0},"Series B":{"count":1,"amount":20.0}},"2024":{"Series A":{"count":4,"amount":312.0},"Series B":{"count":1,"amount":50.0},"Growth Equity":{"count":5,"amount":7000.0}},"2025":{"Seed":{"count":2,"amount":5.5},"Series A":{"count":3,"amount":75.0},"Series B":{"count":3,"amount":100.0},"Growth Equity":{"count":13,"amount":6300.0}}},"nuclear_fusion":{"2021":{"Seed":{"count":3,"amount":8.4},"Series A":{"count":2,"amount":75.0},"Series B":{"count":2,"amount":1880.0},"Growth Equity":{"count":3,"amount":800.0}},"2022":{"Seed":{"count":2,"amount":7.1},"Series A":{"count":2,"amount":70.0},"Series B":{"count":2,"amount":0.0},"Growth Equity":{"count":4,"amount":500.0}},"2023":{"Seed":{"count":6,"amount":22.7},"Series A":{"count":7,"amount":150.0},"Series B":{"count":5,"amount":200.0},"Growth Equity":{"count":4,"amount":200.0}},"2024":{"Seed":{"count":3,"amount":16.3},"Series A":{"count":9,"amount":1015.0},"Series B":{"count":4,"amount":200.0},"Growth Equity":{"count":7,"amount":400.0}},"2025":{"Seed":{"count":3,"amount":13.0},"Series A":{"count":8,"amount":363.0},"Series B":{"count":4,"amount":990.0},"Growth Equity":{"count":7,"amount":600.0}}},"hydrogen":{"2021":{"Seed":{"count":15,"amount":28.4},"Series A":{"count":17,"amount":175.0},"Series B":{"count":12,"amount":270.0},"Growth Equity":{"count":15,"amount":550.0}},"2022":{"Seed":{"count":16,"amount":33.6},"Series A":{"count":22,"amount":335.0},"Series B":{"count":18,"amount":480.0},"Growth Equity":{"count":23,"amount":1000.0}},"2023":{"Seed":{"count":10,"amount":25.1},"Series A":{"count":18,"amount":294.0},"Series B":{"count":14,"amount":430.0},"Growth Equity":{"count":20,"amount":1100.0}},"2024":{"Seed":{"count":7,"amount":17.4},"Series A":{"count":15,"amount":221.0},"Series B":{"count":14,"amount":420.0},"Growth Equity":{"count":18,"amount":750.0}},"2025":{"Seed":{"count":4,"amount":8.9},"Series A":{"count":11,"amount":115.0},"Series B":{"count":11,"amount":200.0},"Growth Equity":{"count":14,"amount":250.0}}},"grid_analytics":{"2021":{"Seed":{"count":5,"amount":9.5},"Series A":{"count":4,"amount":56.0},"Series B":{"count":4,"amount":80.0},"Growth Equity":{"count":6,"amount":600.0}},"2022":{"Seed":{"count":2,"amount":6.4},"Series A":{"count":3,"amount":30.0},"Series B":{"count":4,"amount":130.0},"Growth Equity":{"count":4,"amount":200.0}},"2023":{"Seed":{"count":4,"amount":9.3},"Series A":{"count":5,"amount":48.0},"Series B":{"count":3,"amount":30.0},"Growth Equity":{"count":4,"amount":30.0}},"2024":{"Seed":{"count":4,"amount":13.6},"Series A":{"count":7,"amount":85.0},"Series B":{"count":5,"amount":70.0},"Growth Equity":{"count":6,"amount":100.0}},"2025":{"Seed":{"count":2,"amount":6.5},"Series A":{"count":3,"amount":45.0},"Series B":{"count":5,"amount":170.0},"Growth Equity":{"count":3,"amount":65.0}}},"buildings":{"2021":{"Seed":{"count":28,"amount":52.5},"Series A":{"count":29,"amount":278.0},"Series B":{"count":22,"amount":425.0},"Growth Equity":{"count":25,"amount":750.0}},"2022":{"Seed":{"count":18,"amount":37.1},"Series A":{"count":24,"amount":350.0},"Series B":{"count":22,"amount":675.0},"Growth Equity":{"count":28,"amount":1300.0}},"2023":{"Seed":{"count":24,"amount":49.6},"Series A":{"count":35,"amount":463.0},"Series B":{"count":31,"amount":1051.0},"Growth Equity":{"count":37,"amount":1000.0}},"2024":{"Seed":{"count":16,"amount":33.8},"Series A":{"count":28,"amount":265.0},"Series B":{"count":22,"amount":360.0},"Growth Equity":{"count":23,"amount":300.0}},"2025":{"Seed":{"count":10,"amount":23.7},"Series A":{"count":18,"amount":192.0},"Series B":{"count":18,"amount":358.0},"Growth Equity":{"count":20,"amount":1000.0}}},"storage_flow":{"2021":{"Seed":{"count":1,"amount":3.9},"Series A":{"count":2,"amount":40.0},"Series B":{"count":1,"amount":10.0},"Growth Equity":{"count":3,"amount":240.0}},"2022":{"Seed":{"count":1,"amount":4.1},"Series A":{"count":2,"amount":30.0},"Series B":{"count":2,"amount":80.0},"Growth Equity":{"count":4,"amount":450.0}},"2023":{"Seed":{"count":2,"amount":6.1},"Series A":{"count":3,"amount":55.0},"Series B":{"count":2,"amount":100.0},"Growth Equity":{"count":3,"amount":300.0}},"2024":{"Seed":{"count":1,"amount":1.7},"Series A":{"count":1,"amount":30.0},"Series B":{"count":1,"amount":50.0},"Growth Equity":{"count":4,"amount":405.0}},"2025":{"Series A":{"count":3,"amount":32.8},"Series B":{"count":3,"amount":50.0},"Growth Equity":{"count":3,"amount":0.0}}},"wind":{"2021":{"Seed":{"count":6,"amount":12.2},"Series A":{"count":7,"amount":70.0},"Series B":{"count":5,"amount":110.0},"Growth Equity":{"count":5,"amount":100.0}},"2022":{"Seed":{"count":4,"amount":8.7},"Series A":{"count":7,"amount":65.0},"Series B":{"count":6,"amount":90.0},"Growth Equity":{"count":6,"amount":50.0}},"2023":{"Seed":{"count":4,"amount":7.6},"Series A":{"count":6,"amount":55.0},"Series B":{"count":6,"amount":50.0},"Growth Equity":{"count":6,"amount":30.0}},"2024":{"Seed":{"count":4,"amount":7.5},"Series A":{"count":9,"amount":80.0},"Series B":{"count":7,"amount":70.0},"Growth Equity":{"count":6,"amount":50.0}},"2025":{"Seed":{"count":1,"amount":3.8},"Series A":{"count":3,"amount":25.0},"Series B":{"count":3,"amount":30.0},"Growth Equity":{"count":2,"amount":30.0}}},"cooling_d2c":{"2021":{"Seed":{"count":1,"amount":0.7},"Series A":{"count":1,"amount":2.0}},"2022":{"Series A":{"count":1,"amount":7.3},"Series B":{"count":1,"amount":36.0}},"2023":{"Seed":{"count":1,"amount":4.0},"Series A":{"count":1,"amount":8.0},"Series B":{"count":1,"amount":9.0}},"2024":{"Series B":{"count":2,"amount":24.0}},"2025":{"Seed":{"count":2,"amount":0.0}}},"ee_chips":{"2022":{"Series A":{"count":1,"amount":14.7},"Series B":{"count":1,"amount":25.0}},"2023":{"Seed":{"count":1,"amount":1.7},"Series A":{"count":1,"amount":25.0},"Series B":{"count":2,"amount":154.0}},"2024":{"Series A":{"count":4,"amount":301.9},"Growth Equity":{"count":5,"amount":400.0}},"2025":{"Seed":{"count":1,"amount":7.8},"Series A":{"count":2,"amount":50.0},"Series B":{"count":1,"amount":50.0}}},"storage_thermal":{"2021":{"Seed":{"count":4,"amount":9.8},"Series A":{"count":3,"amount":36.0},"Series B":{"count":2,"amount":40.0},"Growth Equity":{"count":2,"amount":60.0}},"2022":{"Seed":{"count":2,"amount":4.9},"Series A":{"count":3,"amount":43.0},"Series B":{"count":1,"amount":20.0},"Growth Equity":{"count":2,"amount":30.0}},"2023":{"Seed":{"count":4,"amount":9.8},"Series A":{"count":4,"amount":51.0},"Series B":{"count":4,"amount":80.0},"Growth Equity":{"count":3,"amount":60.0}},"2024":{"Seed":{"count":3,"amount":8.9},"Series A":{"count":5,"amount":70.0},"Series B":{"count":5,"amount":0.0},"Growth Equity":{"count":5,"amount":150.0}},"2025":{"Seed":{"count":2,"amount":3.7},"Series A":{"count":4,"amount":50.0},"Series B":{"count":2,"amount":30.0},"Growth Equity":{"count":2,"amount":0.0}}},"cooling_immersion":{"2021":{"Seed":{"count":2,"amount":1.2},"Series A":{"count":1,"amount":1.0}},"2022":{"Series A":{"count":1,"amount":12.0},"Series B":{"count":1,"amount":50.0}},"2023":{"Series B":{"count":1,"amount":81.0}},"2024":{"Seed":{"count":1,"amount":0.5},"Series A":{"count":1,"amount":20.0},"Series B":{"count":2,"amount":160.0}},"2025":{"Growth Equity":{"count":2,"amount":153.0}}},"storage_sodium":{"2021":{"Seed":{"count":1,"amount":1.2},"Series A":{"count":1,"amount":20.0},"Series B":{"count":1,"amount":20.0}},"2022":{"Seed":{"count":1,"amount":2.0},"Series A":{"count":1,"amount":4.7},"Series B":{"count":2,"amount":58.0}},"2023":{"Series A":{"count":2,"amount":5.0},"Series B":{"count":1,"amount":5.0}},"2024":{"Seed":{"count":1,"amount":0.4},"Series A":{"count":2,"amount":35.0},"Series B":{"count":2,"amount":75.0},"Growth Equity":{"count":1,"amount":0.0}},"2025":{"Series A":{"count":1,"amount":1.0},"Series B":{"count":2,"amount":55.6},"Growth Equity":{"count":1,"amount":55.4}}},"grid_cables":{"2021":{"Series A":{"count":1,"amount":8.0},"Series B":{"count":1,"amount":25.0}},"2022":{"Growth Equity":{"count":1,"amount":154.0}},"2023":{"Series B":{"count":1,"amount":24.9}},"2024":{"Seed":{"count":1,"amount":0.1},"Series A":{"count":2,"amount":25.0},"Series B":{"count":1,"amount":25.0}},"2025":{"Series B":{"count":1,"amount":75.0}}}};
+    const catYearStage = {"ee_computing":{"2021":{"Seed":{"count":1,"amount":1.1},"Series A":{"count":1,"amount":8},"Series B":{"count":2,"amount":29.5},"Growth Equity":{"count":3,"amount":150}},"2022":{"Seed":{"count":1,"amount":0.2},"Series A":{"count":1,"amount":8},"Series B":{"count":1,"amount":100},"Growth Equity":{"count":5,"amount":350}},"2023":{"Seed":{"count":2,"amount":4.5},"Series A":{"count":3,"amount":60},"Series B":{"count":1,"amount":25},"Growth Equity":{"count":2,"amount":75}},"2024":{"Seed":{"count":2,"amount":6},"Series A":{"count":4,"amount":55},"Series B":{"count":3,"amount":145},"Growth Equity":{"count":7,"amount":700}},"2025":{"Seed":{"count":1,"amount":5},"Series A":{"count":3,"amount":44.4},"Series B":{"count":3,"amount":130},"Growth Equity":{"count":9,"amount":1775}}},"storage_other":{"2021":{"Seed":{"count":13,"amount":30.2},"Series A":{"count":11,"amount":100},"Series B":{"count":9,"amount":132},"Growth Equity":{"count":11,"amount":235}},"2022":{"Seed":{"count":15,"amount":35.9},"Series A":{"count":17,"amount":195},"Series B":{"count":11,"amount":234},"Growth Equity":{"count":13,"amount":315}},"2023":{"Seed":{"count":17,"amount":42},"Series A":{"count":14,"amount":169},"Series B":{"count":9,"amount":195},"Growth Equity":{"count":10,"amount":335}},"2024":{"Seed":{"count":8,"amount":23.4},"Series A":{"count":10,"amount":155},"Series B":{"count":9,"amount":433},"Growth Equity":{"count":11,"amount":510}},"2025":{"Seed":{"count":5,"amount":15.5},"Series A":{"count":5,"amount":56},"Series B":{"count":8,"amount":275},"Growth Equity":{"count":15,"amount":1300}}},"nuclear_micro":{"2021":{"Seed":{"count":1,"amount":0.9},"Series A":{"count":1,"amount":1}},"2022":{"Series A":{"count":1,"amount":0.3}},"2023":{"Series A":{"count":1,"amount":11.9},"Growth Equity":{"count":3,"amount":235}},"2024":{"Series A":{"count":1,"amount":59.2},"Growth Equity":{"count":3,"amount":500}},"2025":{"Series B":{"count":1,"amount":71},"Growth Equity":{"count":3,"amount":1000}}},"geothermal":{"2021":{"Seed":{"count":5,"amount":12},"Series A":{"count":3,"amount":43},"Series B":{"count":2,"amount":55},"Growth Equity":{"count":1,"amount":25}},"2022":{"Seed":{"count":3,"amount":9.6},"Series A":{"count":3,"amount":65},"Series B":{"count":2,"amount":110},"Growth Equity":{"count":2,"amount":100}},"2023":{"Seed":{"count":2,"amount":6.1},"Series A":{"count":3,"amount":77},"Series B":{"count":2,"amount":60},"Growth Equity":{"count":3,"amount":232}},"2024":{"Seed":{"count":2,"amount":7.6},"Series A":{"count":5,"amount":102},"Series B":{"count":3,"amount":153},"Growth Equity":{"count":5,"amount":379}},"2025":{"Seed":{"count":1,"amount":0.7},"Series A":{"count":3,"amount":85},"Series B":{"count":1,"amount":0},"Growth Equity":{"count":5,"amount":662}}},"nuclear_other":{"2021":{"Seed":{"count":3,"amount":5.8},"Series A":{"count":2,"amount":120},"Series B":{"count":1,"amount":20}},"2022":{"Seed":{"count":1,"amount":2},"Series A":{"count":2,"amount":347.7},"Growth Equity":{"count":2,"amount":750}},"2023":{"Seed":{"count":2,"amount":4.8},"Series A":{"count":2,"amount":50},"Series B":{"count":1,"amount":35},"Growth Equity":{"count":1,"amount":15}},"2024":{"Seed":{"count":2,"amount":6.2},"Series A":{"count":5,"amount":155},"Series B":{"count":2,"amount":70},"Growth Equity":{"count":2,"amount":100}},"2025":{"Seed":{"count":3,"amount":14.4},"Series A":{"count":7,"amount":200},"Series B":{"count":2,"amount":100},"Growth Equity":{"count":6,"amount":1150}}},"solar":{"2021":{"Seed":{"count":28,"amount":52.7},"Series A":{"count":29,"amount":295},"Series B":{"count":21,"amount":519},"Growth Equity":{"count":26,"amount":900}},"2022":{"Seed":{"count":22,"amount":48.8},"Series A":{"count":29,"amount":406},"Series B":{"count":23,"amount":714},"Growth Equity":{"count":24,"amount":1700}},"2023":{"Seed":{"count":17,"amount":35.7},"Series A":{"count":30,"amount":592},"Series B":{"count":30,"amount":1800},"Growth Equity":{"count":31,"amount":3400}},"2024":{"Seed":{"count":13,"amount":28.1},"Series A":{"count":24,"amount":269},"Series B":{"count":19,"amount":300},"Growth Equity":{"count":17,"amount":300}},"2025":{"Seed":{"count":6,"amount":13.9},"Series A":{"count":17,"amount":215},"Series B":{"count":19,"amount":570},"Growth Equity":{"count":15,"amount":500}}},"storage_mech":{"2021":{"Seed":{"count":2,"amount":4.8},"Series A":{"count":2,"amount":50},"Series B":{"count":1,"amount":0},"Growth Equity":{"count":1,"amount":100}},"2022":{"Series A":{"count":1,"amount":0},"Series B":{"count":1,"amount":0}},"2023":{"Seed":{"count":1,"amount":0.7},"Series A":{"count":1,"amount":50},"Series B":{"count":1,"amount":0},"Growth Equity":{"count":1,"amount":100}},"2024":{"Series A":{"count":2,"amount":53.3},"Series B":{"count":1,"amount":50},"Growth Equity":{"count":3,"amount":323.2}},"2025":{"Series A":{"count":1,"amount":23.4},"Growth Equity":{"count":3,"amount":371}}},"other":{"2021":{"Seed":{"count":26,"amount":45.8},"Series A":{"count":31,"amount":280},"Series B":{"count":28,"amount":420},"Growth Equity":{"count":34,"amount":1150}},"2022":{"Seed":{"count":21,"amount":38.1},"Series A":{"count":26,"amount":335},"Series B":{"count":26,"amount":697},"Growth Equity":{"count":38,"amount":2850}},"2023":{"Seed":{"count":22,"amount":42.2},"Series A":{"count":32,"amount":370},"Series B":{"count":28,"amount":505},"Growth Equity":{"count":41,"amount":1375}},"2024":{"Seed":{"count":18,"amount":32.9},"Series A":{"count":30,"amount":296},"Series B":{"count":25,"amount":400},"Growth Equity":{"count":35,"amount":700}},"2025":{"Seed":{"count":8,"amount":18.2},"Series A":{"count":18,"amount":172},"Series B":{"count":17,"amount":300},"Growth Equity":{"count":23,"amount":703}}},"storage_lithium":{"2021":{"Seed":{"count":6,"amount":12.8},"Series A":{"count":11,"amount":234},"Series B":{"count":13,"amount":2843},"Growth Equity":{"count":14,"amount":3988}},"2022":{"Seed":{"count":9,"amount":19.9},"Series A":{"count":13,"amount":209},"Series B":{"count":14,"amount":633},"Growth Equity":{"count":13,"amount":1077}},"2023":{"Seed":{"count":5,"amount":13.5},"Series A":{"count":9,"amount":130},"Series B":{"count":8,"amount":490},"Growth Equity":{"count":13,"amount":2000}},"2024":{"Seed":{"count":5,"amount":9.6},"Series A":{"count":9,"amount":95},"Series B":{"count":9,"amount":250},"Growth Equity":{"count":11,"amount":400}},"2025":{"Seed":{"count":2,"amount":7.4},"Series A":{"count":5,"amount":50},"Series B":{"count":4,"amount":60},"Growth Equity":{"count":7,"amount":280}}},"grid_transformer":{"2022":{"Series A":{"count":1,"amount":3.9}},"2023":{"Seed":{"count":1,"amount":2.8},"Series A":{"count":1,"amount":15}},"2024":{"Series A":{"count":1,"amount":12.4}},"2025":{"Series A":{"count":2,"amount":58},"Series B":{"count":1,"amount":17},"Growth Equity":{"count":1,"amount":80}}},"grid_der":{"2021":{"Seed":{"count":8,"amount":13.5},"Series A":{"count":5,"amount":50},"Series B":{"count":4,"amount":90},"Growth Equity":{"count":4,"amount":85}},"2022":{"Seed":{"count":4,"amount":10},"Series A":{"count":4,"amount":55},"Series B":{"count":5,"amount":120},"Growth Equity":{"count":6,"amount":300}},"2023":{"Seed":{"count":3,"amount":7.7},"Series A":{"count":4,"amount":52},"Series B":{"count":3,"amount":70},"Growth Equity":{"count":3,"amount":100}},"2024":{"Seed":{"count":2,"amount":5.6},"Series A":{"count":4,"amount":47},"Series B":{"count":5,"amount":120},"Growth Equity":{"count":3,"amount":99}},"2025":{"Seed":{"count":1,"amount":3.3},"Series A":{"count":3,"amount":33},"Series B":{"count":5,"amount":100},"Growth Equity":{"count":3,"amount":50}}},"grid_wildfire":{"2021":{"Seed":{"count":2,"amount":4.3},"Series A":{"count":1,"amount":5}},"2022":{"Series A":{"count":1,"amount":5.2}},"2023":{"Seed":{"count":1,"amount":4.5},"Series A":{"count":1,"amount":20}},"2025":{"Series B":{"count":2,"amount":81.4},"Growth Equity":{"count":1,"amount":43}}},"nuclear_smr":{"2021":{"Seed":{"count":1,"amount":3},"Series A":{"count":1,"amount":40},"Growth Equity":{"count":2,"amount":152}},"2022":{"Series A":{"count":1,"amount":30}},"2023":{"Seed":{"count":2,"amount":2},"Series A":{"count":1,"amount":2}},"2024":{"Series A":{"count":2,"amount":11.3},"Growth Equity":{"count":1,"amount":45}},"2025":{"Seed":{"count":1,"amount":22},"Series A":{"count":1,"amount":50},"Growth Equity":{"count":1,"amount":50}}},"dc_modular":{"2021":{"Series A":{"count":1,"amount":6.4}},"2023":{"Series A":{"count":1,"amount":7},"Growth Equity":{"count":1,"amount":55}},"2024":{"Series A":{"count":1,"amount":20},"Series B":{"count":1,"amount":40}},"2025":{"Seed":{"count":1,"amount":3.5},"Series A":{"count":1,"amount":50},"Series B":{"count":1,"amount":35}}},"dc_general":{"2021":{"Series A":{"count":1,"amount":12},"Series B":{"count":1,"amount":50},"Growth Equity":{"count":3,"amount":317}},"2022":{"Seed":{"count":1,"amount":3.8},"Series A":{"count":2,"amount":40},"Growth Equity":{"count":3,"amount":50}},"2023":{"Seed":{"count":1,"amount":1.7},"Series A":{"count":1,"amount":15},"Series B":{"count":1,"amount":20}},"2024":{"Series A":{"count":4,"amount":312},"Series B":{"count":1,"amount":50},"Growth Equity":{"count":5,"amount":7000}},"2025":{"Seed":{"count":2,"amount":5.5},"Series A":{"count":3,"amount":75},"Series B":{"count":3,"amount":100},"Growth Equity":{"count":13,"amount":6300}}},"nuclear_fusion":{"2021":{"Seed":{"count":3,"amount":8.4},"Series A":{"count":2,"amount":75},"Series B":{"count":2,"amount":1880},"Growth Equity":{"count":3,"amount":800}},"2022":{"Seed":{"count":2,"amount":7.1},"Series A":{"count":2,"amount":70},"Series B":{"count":2,"amount":0},"Growth Equity":{"count":4,"amount":500}},"2023":{"Seed":{"count":6,"amount":22.7},"Series A":{"count":7,"amount":150},"Series B":{"count":5,"amount":200},"Growth Equity":{"count":4,"amount":200}},"2024":{"Seed":{"count":3,"amount":16.3},"Series A":{"count":9,"amount":1015},"Series B":{"count":4,"amount":200},"Growth Equity":{"count":7,"amount":400}},"2025":{"Seed":{"count":3,"amount":13},"Series A":{"count":8,"amount":363},"Series B":{"count":4,"amount":990},"Growth Equity":{"count":7,"amount":600}}},"hydrogen":{"2021":{"Seed":{"count":15,"amount":28.4},"Series A":{"count":17,"amount":175},"Series B":{"count":12,"amount":270},"Growth Equity":{"count":15,"amount":550}},"2022":{"Seed":{"count":16,"amount":33.6},"Series A":{"count":22,"amount":335},"Series B":{"count":18,"amount":480},"Growth Equity":{"count":23,"amount":1000}},"2023":{"Seed":{"count":10,"amount":25.1},"Series A":{"count":18,"amount":294},"Series B":{"count":14,"amount":430},"Growth Equity":{"count":20,"amount":1100}},"2024":{"Seed":{"count":7,"amount":17.4},"Series A":{"count":15,"amount":221},"Series B":{"count":14,"amount":420},"Growth Equity":{"count":18,"amount":750}},"2025":{"Seed":{"count":4,"amount":8.9},"Series A":{"count":11,"amount":115},"Series B":{"count":11,"amount":200},"Growth Equity":{"count":14,"amount":250}}},"grid_analytics":{"2021":{"Seed":{"count":5,"amount":9.5},"Series A":{"count":4,"amount":56},"Series B":{"count":4,"amount":80},"Growth Equity":{"count":6,"amount":600}},"2022":{"Seed":{"count":2,"amount":6.4},"Series A":{"count":3,"amount":30},"Series B":{"count":4,"amount":130},"Growth Equity":{"count":4,"amount":200}},"2023":{"Seed":{"count":4,"amount":9.3},"Series A":{"count":5,"amount":48},"Series B":{"count":3,"amount":30},"Growth Equity":{"count":4,"amount":30}},"2024":{"Seed":{"count":4,"amount":13.6},"Series A":{"count":7,"amount":85},"Series B":{"count":5,"amount":70},"Growth Equity":{"count":6,"amount":100}},"2025":{"Seed":{"count":2,"amount":6.5},"Series A":{"count":3,"amount":45},"Series B":{"count":5,"amount":170},"Growth Equity":{"count":3,"amount":65}}},"buildings":{"2021":{"Seed":{"count":28,"amount":52.5},"Series A":{"count":29,"amount":278},"Series B":{"count":22,"amount":425},"Growth Equity":{"count":25,"amount":750}},"2022":{"Seed":{"count":18,"amount":37.1},"Series A":{"count":24,"amount":350},"Series B":{"count":22,"amount":675},"Growth Equity":{"count":28,"amount":1300}},"2023":{"Seed":{"count":24,"amount":49.6},"Series A":{"count":35,"amount":463},"Series B":{"count":31,"amount":1051},"Growth Equity":{"count":37,"amount":1000}},"2024":{"Seed":{"count":16,"amount":33.8},"Series A":{"count":28,"amount":265},"Series B":{"count":22,"amount":360},"Growth Equity":{"count":23,"amount":300}},"2025":{"Seed":{"count":10,"amount":23.7},"Series A":{"count":18,"amount":192},"Series B":{"count":18,"amount":358},"Growth Equity":{"count":20,"amount":1000}}},"storage_flow":{"2021":{"Seed":{"count":1,"amount":3.9},"Series A":{"count":2,"amount":40},"Series B":{"count":1,"amount":10},"Growth Equity":{"count":3,"amount":240}},"2022":{"Seed":{"count":1,"amount":4.1},"Series A":{"count":2,"amount":30},"Series B":{"count":2,"amount":80},"Growth Equity":{"count":4,"amount":450}},"2023":{"Seed":{"count":2,"amount":6.1},"Series A":{"count":3,"amount":55},"Series B":{"count":2,"amount":100},"Growth Equity":{"count":3,"amount":300}},"2024":{"Seed":{"count":1,"amount":1.7},"Series A":{"count":1,"amount":30},"Series B":{"count":1,"amount":50},"Growth Equity":{"count":4,"amount":405}},"2025":{"Series A":{"count":3,"amount":32.8},"Series B":{"count":3,"amount":50},"Growth Equity":{"count":3,"amount":0}}},"wind":{"2021":{"Seed":{"count":6,"amount":12.2},"Series A":{"count":7,"amount":70},"Series B":{"count":5,"amount":110},"Growth Equity":{"count":5,"amount":100}},"2022":{"Seed":{"count":4,"amount":8.7},"Series A":{"count":7,"amount":65},"Series B":{"count":6,"amount":90},"Growth Equity":{"count":6,"amount":50}},"2023":{"Seed":{"count":4,"amount":7.6},"Series A":{"count":6,"amount":55},"Series B":{"count":6,"amount":50},"Growth Equity":{"count":6,"amount":30}},"2024":{"Seed":{"count":4,"amount":7.5},"Series A":{"count":9,"amount":80},"Series B":{"count":7,"amount":70},"Growth Equity":{"count":6,"amount":50}},"2025":{"Seed":{"count":1,"amount":3.8},"Series A":{"count":3,"amount":25},"Series B":{"count":3,"amount":30},"Growth Equity":{"count":2,"amount":30}}},"cooling_d2c":{"2021":{"Seed":{"count":1,"amount":0.7},"Series A":{"count":1,"amount":2}},"2022":{"Series A":{"count":1,"amount":7.3},"Series B":{"count":1,"amount":36}},"2023":{"Seed":{"count":1,"amount":4},"Series A":{"count":1,"amount":8},"Series B":{"count":1,"amount":9}},"2024":{"Series B":{"count":2,"amount":24}},"2025":{"Seed":{"count":2,"amount":0}}},"ee_chips":{"2022":{"Series A":{"count":1,"amount":14.7},"Series B":{"count":1,"amount":25}},"2023":{"Seed":{"count":1,"amount":1.7},"Series A":{"count":1,"amount":25},"Series B":{"count":2,"amount":154}},"2024":{"Series A":{"count":4,"amount":301.9},"Growth Equity":{"count":5,"amount":400}},"2025":{"Seed":{"count":1,"amount":7.8},"Series A":{"count":2,"amount":50},"Series B":{"count":1,"amount":50}}},"storage_thermal":{"2021":{"Seed":{"count":4,"amount":9.8},"Series A":{"count":3,"amount":36},"Series B":{"count":2,"amount":40},"Growth Equity":{"count":2,"amount":60}},"2022":{"Seed":{"count":2,"amount":4.9},"Series A":{"count":3,"amount":43},"Series B":{"count":1,"amount":20},"Growth Equity":{"count":2,"amount":30}},"2023":{"Seed":{"count":4,"amount":9.8},"Series A":{"count":4,"amount":51},"Series B":{"count":4,"amount":80},"Growth Equity":{"count":3,"amount":60}},"2024":{"Seed":{"count":3,"amount":8.9},"Series A":{"count":5,"amount":70},"Series B":{"count":5,"amount":0},"Growth Equity":{"count":5,"amount":150}},"2025":{"Seed":{"count":2,"amount":3.7},"Series A":{"count":4,"amount":50},"Series B":{"count":2,"amount":30},"Growth Equity":{"count":2,"amount":0}}},"cooling_immersion":{"2021":{"Seed":{"count":2,"amount":1.2},"Series A":{"count":1,"amount":1}},"2022":{"Series A":{"count":1,"amount":12},"Series B":{"count":1,"amount":50}},"2023":{"Series B":{"count":1,"amount":81}},"2024":{"Seed":{"count":1,"amount":0.5},"Series A":{"count":1,"amount":20},"Series B":{"count":2,"amount":160}},"2025":{"Growth Equity":{"count":2,"amount":153}}},"storage_sodium":{"2021":{"Seed":{"count":1,"amount":1.2},"Series A":{"count":1,"amount":20},"Series B":{"count":1,"amount":20}},"2022":{"Seed":{"count":1,"amount":2},"Series A":{"count":1,"amount":4.7},"Series B":{"count":2,"amount":58}},"2023":{"Series A":{"count":2,"amount":5},"Series B":{"count":1,"amount":5}},"2024":{"Seed":{"count":1,"amount":0.4},"Series A":{"count":2,"amount":35},"Series B":{"count":2,"amount":75},"Growth Equity":{"count":1,"amount":0}},"2025":{"Series A":{"count":1,"amount":1},"Series B":{"count":2,"amount":55.6},"Growth Equity":{"count":1,"amount":55.4}}},"grid_cables":{"2021":{"Series A":{"count":1,"amount":8},"Series B":{"count":1,"amount":25}},"2022":{"Growth Equity":{"count":1,"amount":154}},"2023":{"Series B":{"count":1,"amount":24.9}},"2024":{"Seed":{"count":1,"amount":0.1},"Series A":{"count":2,"amount":25},"Series B":{"count":1,"amount":25}},"2025":{"Series B":{"count":1,"amount":75}}}};
 
-    const allDeals = [{"company":"Vantage Data Centers","amount":6400.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"Vantage Data Centers","amount":3000.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"Northvolt","amount":2750.0,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"Sweden","category":"storage_lithium"},{"company":"Commonwealth Fusion Systems","amount":1800.0,"quarter":"2021/Q4","year":"2021","stage":"Series B","country":"United States","category":"nuclear_fusion"},{"company":"Lineage Logistics","amount":1700.0,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"United States","category":"other"},{"company":"Vantage Data Centers","amount":1600.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"Svolt","amount":1600.0,"quarter":"2021/Q3","year":"2021","stage":"Series B","country":"China","category":"storage_lithium"},{"company":"Yingfa Group","amount":1450.0,"quarter":"2023/Q1","year":"2023","stage":"Growth Equity","country":"China","category":"solar"},{"company":"Crusoe","amount":1375.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"ee_computing"},{"company":"Base Power Company","amount":1000.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_other"},{"company":"Svolt","amount":942.0,"quarter":"2021/Q4","year":"2021","stage":"Series B","country":"China","category":"storage_lithium"},{"company":"Verkor","amount":907.0,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"France","category":"storage_lithium"},{"company":"Pacific Fusion","amount":900.0,"quarter":"2024/Q4","year":"2024","stage":"Series A","country":"United States","category":"nuclear_fusion"},{"company":"Octopus Energy","amount":874.7,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"United Kingdom","category":"other"},{"company":"Commonwealth Fusion Systems","amount":863.0,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"United States","category":"nuclear_fusion"},{"company":"TerraPower","amount":750.0,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"X-Energy","amount":700.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Serentica Renewables","amount":672.9,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"India","category":"solar"},{"company":"TerraPower","amount":650.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"Digital Edge DC","amount":640.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"Singapore","category":"dc_general"},{"company":"Hithium","amount":622.0,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"China","category":"storage_lithium"},{"company":"Crusoe","amount":600.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"ee_computing"},{"company":"Octopus Energy","amount":600.0,"quarter":"2021/Q3","year":"2021","stage":"Growth Equity","country":"United Kingdom","category":"other"},{"company":"Scala Data Centers","amount":550.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"Brazil","category":"dc_general"},{"company":"Svolt","amount":533.7,"quarter":"2021/Q1","year":"2021","stage":"Series A","country":"China","category":"storage_lithium"},{"company":"Takanock","amount":500.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"dc_general"},{"company":"X-Energy","amount":500.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Helion Energy","amount":500.0,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"EcoDataCenter","amount":485.7,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"Sweden","category":"dc_general"},{"company":"1Komma5","amount":467.9,"quarter":"2023/Q2","year":"2023","stage":"Series B","country":"Germany","category":"buildings"},{"company":"Fervo Energy","amount":462.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"Form Energy","amount":450.0,"quarter":"2022/Q4","year":"2022","stage":"Growth Equity","country":"United States","category":"storage_flow"},{"company":"Helion Energy","amount":425.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Form Energy","amount":405.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"storage_flow"},{"company":"Lightmatter","amount":400.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"ee_chips"},{"company":"Northvolt","amount":400.0,"quarter":"2023/Q2","year":"2023","stage":"Growth Equity","country":"Sweden","category":"storage_lithium"},{"company":"Claroty","amount":400.0,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"United States","category":"grid_analytics"},{"company":"Electric Hydrogen","amount":380.0,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"United States","category":"hydrogen"},{"company":"Palmetto","amount":375.0,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"United States","category":"solar"},{"company":"Gaojing Solar","amount":360.0,"quarter":"2022/Q3","year":"2022","stage":"Series B","country":"China","category":"solar"},{"company":"Kaer","amount":350.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"Singapore","category":"buildings"},{"company":"Crusoe","amount":350.0,"quarter":"2022/Q2","year":"2022","stage":"Growth Equity","country":"United States","category":"ee_computing"},{"company":"Highview Power","amount":323.2,"quarter":"2024/Q2","year":"2024","stage":"Growth Equity","country":"United Kingdom","category":"storage_mech"},{"company":"EnerVenue","amount":308.1,"quarter":"2024/Q2","year":"2024","stage":"Series B","country":"United States","category":"storage_other"},{"company":"newcleo","amount":307.7,"quarter":"2022/Q2","year":"2022","stage":"Series A","country":"France","category":"nuclear_other"},{"company":"Radiant","amount":300.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"Our Next Energy","amount":300.0,"quarter":"2023/Q1","year":"2023","stage":"Series B","country":"United States","category":"storage_lithium"},{"company":"Lunar Energy","amount":300.0,"quarter":"2022/Q3","year":"2022","stage":"Seed","country":"United States","category":"grid_der"},{"company":"Monolith","amount":300.0,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"United States","category":"hydrogen"},{"company":"TAE Technologies","amount":280.0,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Mainspring Energy","amount":258.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"buildings"},{"company":"Deep Green","amount":252.6,"quarter":"2024/Q1","year":"2024","stage":"Series A","country":"United Kingdom","category":"dc_general"},{"company":"TAE Technologies","amount":250.0,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Fervo Energy","amount":244.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"X-Energy","amount":235.0,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Sunfire","amount":233.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"Germany","category":"hydrogen"},{"company":"Firmus Technologies","amount":220.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"Singapore","category":"ee_computing"},{"company":"Torus","amount":200.0,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_mech"},{"company":"Base Power Company","amount":200.0,"quarter":"2025/Q2","year":"2025","stage":"Series B","country":"United States","category":"storage_other"},{"company":"X-Energy","amount":200.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_micro"},{"company":"Eavor Technologies","amount":182.0,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"Canada","category":"geothermal"},{"company":"Highview Power","amount":171.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United Kingdom","category":"storage_mech"},{"company":"Auradine","amount":153.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"cooling_immersion"},{"company":"Antora Energy","amount":150.0,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"United States","category":"storage_thermal"},{"company":"Type One Energy","amount":135.0,"quarter":"2025/Q3","year":"2025","stage":"Series A","country":"United States","category":"nuclear_fusion"},{"company":"Fervo Energy","amount":135.0,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"Zap Energy","amount":115.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_fusion"},{"company":"Last Energy","amount":100.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"nuclear_other"},{"company":"Fervo Energy","amount":100.0,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"geothermal"},{"company":"Kaluza","amount":99.0,"quarter":"2024/Q2","year":"2024","stage":"Series B","country":"United Kingdom","category":"grid_der"},{"company":"Exodigo","amount":96.0,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"Israel","category":"grid_analytics"},{"company":"Amperesand","amount":80.0,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Singapore","category":"grid_transformer"},{"company":"Blue Current","amount":80.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_lithium"},{"company":"VEIR","amount":75.0,"quarter":"2025/Q1","year":"2025","stage":"Series B","country":"United States","category":"grid_cables"},{"company":"Daylight","amount":75.0,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"United States","category":"grid_der"},{"company":"Antares","amount":71.0,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"United States","category":"nuclear_micro"},{"company":"Smart Wires","amount":65.0,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"United States","category":"grid_analytics"},{"company":"Radiant","amount":65.0,"quarter":"2025/Q2","year":"2025","stage":"Series A","country":"United States","category":"nuclear_other"},{"company":"Corvus Energy","amount":60.0,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"Canada","category":"storage_lithium"},{"company":"Gridware","amount":55.0,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"United States","category":"grid_wildfire"},{"company":"Natron Energy","amount":55.4,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"United States","category":"storage_sodium"},{"company":"Exowatt","amount":50.0,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"United States","category":"dc_modular"},{"company":"Blykalla","amount":50.0,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Sweden","category":"nuclear_smr"},{"company":"Eavor","amount":50.0,"quarter":"2025/Q1","year":"2025","stage":"Series A","country":"Canada","category":"geothermal"}];
+    const allDeals = [{"company":"Vantage Data Centers","amount":6400,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"US","category":"dc_general"},{"company":"Vantage Data Centers","amount":3000,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"US","category":"dc_general"},{"company":"Northvolt","amount":2750,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"Sweden","category":"storage_lithium"},{"company":"Commonwealth Fusion","amount":1800,"quarter":"2021/Q4","year":"2021","stage":"Series B","country":"US","category":"nuclear_fusion"},{"company":"Lineage Logistics","amount":1700,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"US","category":"other"},{"company":"Vantage Data Centers","amount":1600,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"US","category":"dc_general"},{"company":"Svolt","amount":1600,"quarter":"2021/Q3","year":"2021","stage":"Series B","country":"China","category":"storage_lithium"},{"company":"Yingfa Group","amount":1450,"quarter":"2023/Q1","year":"2023","stage":"Growth Equity","country":"China","category":"solar"},{"company":"Crusoe","amount":1375,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"ee_computing"},{"company":"Base Power Company","amount":1000,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"storage_other"},{"company":"Svolt","amount":942,"quarter":"2021/Q4","year":"2021","stage":"Series B","country":"China","category":"storage_lithium"},{"company":"Verkor","amount":907,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"France","category":"storage_lithium"},{"company":"Pacific Fusion","amount":900,"quarter":"2024/Q4","year":"2024","stage":"Series A","country":"US","category":"nuclear_fusion"},{"company":"Octopus Energy","amount":875,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"UK","category":"other"},{"company":"Commonwealth Fusion","amount":863,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"US","category":"nuclear_fusion"},{"company":"TerraPower","amount":750,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"US","category":"nuclear_other"},{"company":"X-Energy","amount":700,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_micro"},{"company":"Serentica Renewables","amount":673,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"India","category":"solar"},{"company":"TerraPower","amount":650,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_other"},{"company":"Digital Edge DC","amount":640,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"Singapore","category":"dc_general"},{"company":"Hithium","amount":622,"quarter":"2023/Q3","year":"2023","stage":"Growth Equity","country":"China","category":"storage_lithium"},{"company":"Crusoe","amount":600,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"US","category":"ee_computing"},{"company":"Octopus Energy","amount":600,"quarter":"2021/Q3","year":"2021","stage":"Growth Equity","country":"UK","category":"other"},{"company":"Scala Data Centers","amount":550,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"Brazil","category":"dc_general"},{"company":"Svolt","amount":534,"quarter":"2021/Q1","year":"2021","stage":"Series A","country":"China","category":"storage_lithium"},{"company":"Takanock","amount":500,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"dc_general"},{"company":"X-Energy","amount":500,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"US","category":"nuclear_micro"},{"company":"Helion Energy","amount":500,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"EcoDataCenter","amount":486,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"Sweden","category":"dc_general"},{"company":"1Komma5","amount":468,"quarter":"2023/Q2","year":"2023","stage":"Series B","country":"Germany","category":"buildings"},{"company":"Fervo Energy","amount":462,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"geothermal"},{"company":"Form Energy","amount":450,"quarter":"2022/Q4","year":"2022","stage":"Growth Equity","country":"US","category":"storage_flow"},{"company":"Helion Energy","amount":425,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"Form Energy","amount":405,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"US","category":"storage_flow"},{"company":"Lightmatter","amount":400,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"US","category":"ee_chips"},{"company":"Northvolt","amount":400,"quarter":"2023/Q2","year":"2023","stage":"Growth Equity","country":"Sweden","category":"storage_lithium"},{"company":"Claroty","amount":400,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"US","category":"grid_analytics"},{"company":"Electric Hydrogen","amount":380,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"US","category":"hydrogen"},{"company":"Palmetto","amount":375,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"US","category":"solar"},{"company":"Gaojing Solar","amount":360,"quarter":"2022/Q3","year":"2022","stage":"Series B","country":"China","category":"solar"},{"company":"Kaer","amount":350,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"Singapore","category":"buildings"},{"company":"Crusoe","amount":350,"quarter":"2022/Q2","year":"2022","stage":"Growth Equity","country":"US","category":"ee_computing"},{"company":"Highview Power","amount":323,"quarter":"2024/Q2","year":"2024","stage":"Growth Equity","country":"UK","category":"storage_mech"},{"company":"EnerVenue","amount":308,"quarter":"2024/Q2","year":"2024","stage":"Series B","country":"US","category":"storage_other"},{"company":"newcleo","amount":308,"quarter":"2022/Q2","year":"2022","stage":"Series A","country":"France","category":"nuclear_other"},{"company":"Radiant","amount":300,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_other"},{"company":"Our Next Energy","amount":300,"quarter":"2023/Q1","year":"2023","stage":"Series B","country":"US","category":"storage_lithium"},{"company":"Lunar Energy","amount":300,"quarter":"2022/Q3","year":"2022","stage":"Seed","country":"US","category":"grid_der"},{"company":"Monolith","amount":300,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"US","category":"hydrogen"},{"company":"TAE Technologies","amount":280,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"Mainspring Energy","amount":258,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"buildings"},{"company":"Deep Green","amount":253,"quarter":"2024/Q1","year":"2024","stage":"Series A","country":"UK","category":"dc_general"},{"company":"TAE Technologies","amount":250,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"Rivos","amount":250,"quarter":"2024/Q2","year":"2024","stage":"Series A","country":"US","category":"ee_chips"},{"company":"Ohmium","amount":250,"quarter":"2023/Q2","year":"2023","stage":"Growth Equity","country":"US","category":"hydrogen"},{"company":"Aurora Solar","amount":250,"quarter":"2021/Q2","year":"2021","stage":"Growth Equity","country":"US","category":"solar"},{"company":"Fervo Energy","amount":244,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"US","category":"geothermal"},{"company":"Form Energy","amount":240,"quarter":"2021/Q3","year":"2021","stage":"Growth Equity","country":"US","category":"storage_flow"},{"company":"X-Energy","amount":235,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"US","category":"nuclear_micro"},{"company":"Holosolis","amount":233,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"France","category":"solar"},{"company":"Sunfire","amount":233,"quarter":"2024/Q1","year":"2024","stage":"Growth Equity","country":"Germany","category":"hydrogen"},{"company":"Enpal","amount":230,"quarter":"2023/Q1","year":"2023","stage":"Growth Equity","country":"Germany","category":"solar"},{"company":"Firmus Technologies","amount":220,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"Singapore","category":"ee_computing"},{"company":"1Komma5","amount":217,"quarter":"2022/Q2","year":"2022","stage":"Series A","country":"Germany","category":"buildings"},{"company":"Torus","amount":200,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"US","category":"storage_mech"},{"company":"Base Power Company","amount":200,"quarter":"2025/Q2","year":"2025","stage":"Series B","country":"US","category":"storage_other"},{"company":"X-Energy","amount":200,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_micro"},{"company":"Enviria","amount":200,"quarter":"2024/Q1","year":"2024","stage":"Series B","country":"Germany","category":"solar"},{"company":"Aurora Solar","amount":200,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"US","category":"solar"},{"company":"Factorial Energy","amount":200,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"US","category":"storage_lithium"},{"company":"Axonius","amount":200,"quarter":"2022/Q1","year":"2022","stage":"Growth Equity","country":"Israel","category":"grid_analytics"},{"company":"Electric Hydrogen","amount":198,"quarter":"2022/Q2","year":"2022","stage":"Growth Equity","country":"US","category":"hydrogen"},{"company":"DC Blox","amount":187,"quarter":"2021/Q1","year":"2021","stage":"Growth Equity","country":"US","category":"dc_general"},{"company":"Infinitum","amount":185,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"US","category":"buildings"},{"company":"Eavor Technologies","amount":182,"quarter":"2023/Q4","year":"2023","stage":"Growth Equity","country":"Canada","category":"geothermal"},{"company":"Aira","amount":175,"quarter":"2025/Q3","year":"2025","stage":"Growth Equity","country":"Sweden","category":"buildings"},{"company":"Highview Power","amount":171,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"UK","category":"storage_mech"},{"company":"Zap Energy","amount":160,"quarter":"2022/Q2","year":"2022","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"Lightmatter","amount":154,"quarter":"2023/Q2","year":"2023","stage":"Growth Equity","country":"US","category":"ee_chips"},{"company":"Sun Cable","amount":154,"quarter":"2022/Q1","year":"2022","stage":"Series B","country":"Australia","category":"grid_cables"},{"company":"Auradine","amount":153,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"cooling_immersion"},{"company":"Proxima Fusion","amount":150,"quarter":"2025/Q2","year":"2025","stage":"Series A","country":"Germany","category":"nuclear_fusion"},{"company":"TAE Technologies","amount":150,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"Antora Energy","amount":150,"quarter":"2024/Q1","year":"2024","stage":"Series B","country":"US","category":"storage_thermal"},{"company":"NuScale Power","amount":152,"quarter":"2021/Q3","year":"2021","stage":"Growth Equity","country":"US","category":"nuclear_smr"},{"company":"Lancium","amount":150,"quarter":"2021/Q4","year":"2021","stage":"Series A","country":"US","category":"dc_general"},{"company":"Fervo Energy","amount":138,"quarter":"2022/Q3","year":"2022","stage":"Growth Equity","country":"US","category":"geothermal"},{"company":"Type One Energy","amount":135,"quarter":"2025/Q3","year":"2025","stage":"Series A","country":"US","category":"nuclear_fusion"},{"company":"Fervo Energy","amount":135,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"US","category":"geothermal"},{"company":"John Cockerill H2","amount":136,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"Belgium","category":"hydrogen"},{"company":"Terabase Energy","amount":130,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"US","category":"solar"},{"company":"Zap Energy","amount":130,"quarter":"2024/Q3","year":"2024","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"General Fusion","amount":130,"quarter":"2021/Q4","year":"2021","stage":"Growth Equity","country":"Canada","category":"nuclear_fusion"},{"company":"Solid Power","amount":130,"quarter":"2021/Q2","year":"2021","stage":"Series B","country":"US","category":"storage_lithium"},{"company":"Crusoe","amount":128,"quarter":"2021/Q2","year":"2021","stage":"Series B","country":"US","category":"ee_computing"},{"company":"Tokamak Energy","amount":125,"quarter":"2024/Q4","year":"2024","stage":"Growth Equity","country":"UK","category":"nuclear_fusion"},{"company":"Zap Energy","amount":115,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_fusion"},{"company":"Empact","amount":116,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Germany","category":"storage_other"},{"company":"EnCharge AI","amount":100,"quarter":"2025/Q1","year":"2025","stage":"Series B","country":"US","category":"dc_general"},{"company":"Fervo Energy","amount":100,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"geothermal"},{"company":"Last Energy","amount":100,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"nuclear_other"},{"company":"Aalo Atomics","amount":100,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"US","category":"nuclear_micro"},{"company":"Xcimer Energy","amount":100,"quarter":"2024/Q2","year":"2024","stage":"Series A","country":"US","category":"nuclear_fusion"},{"company":"Kaluza","amount":99,"quarter":"2024/Q2","year":"2024","stage":"Growth Equity","country":"UK","category":"grid_der"},{"company":"Exodigo","amount":96,"quarter":"2025/Q3","year":"2025","stage":"Series B","country":"Israel","category":"grid_analytics"},{"company":"Amperesand","amount":80,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Singapore","category":"grid_transformer"},{"company":"Auradine","amount":81,"quarter":"2023/Q2","year":"2023","stage":"Series A","country":"US","category":"cooling_immersion"},{"company":"Auradine","amount":80,"quarter":"2024/Q2","year":"2024","stage":"Series B","country":"US","category":"cooling_immersion"},{"company":"Blue Current","amount":80,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"US","category":"storage_lithium"},{"company":"VEIR","amount":75,"quarter":"2025/Q1","year":"2025","stage":"Series B","country":"US","category":"grid_cables"},{"company":"Daylight","amount":75,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"US","category":"grid_der"},{"company":"Antares","amount":71,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"US","category":"nuclear_micro"},{"company":"Radiant","amount":65,"quarter":"2025/Q2","year":"2025","stage":"Series A","country":"US","category":"nuclear_other"},{"company":"Smart Wires","amount":65,"quarter":"2025/Q1","year":"2025","stage":"Growth Equity","country":"US","category":"grid_analytics"},{"company":"Rondo Energy","amount":60,"quarter":"2023/Q3","year":"2023","stage":"Series B","country":"US","category":"storage_thermal"},{"company":"Corvus Energy","amount":60,"quarter":"2025/Q4","year":"2025","stage":"Growth Equity","country":"Canada","category":"storage_lithium"},{"company":"Natron Energy","amount":58,"quarter":"2022/Q4","year":"2022","stage":"Series B","country":"US","category":"storage_sodium"},{"company":"Natron Energy","amount":55,"quarter":"2025/Q2","year":"2025","stage":"Growth Equity","country":"US","category":"storage_sodium"},{"company":"Gridware","amount":55,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"US","category":"grid_wildfire"},{"company":"Peak Energy","amount":55,"quarter":"2024/Q3","year":"2024","stage":"Series A","country":"US","category":"storage_sodium"},{"company":"Armada","amount":55,"quarter":"2023/Q4","year":"2023","stage":"Series A","country":"US","category":"dc_modular"},{"company":"Exowatt","amount":50,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"US","category":"dc_modular"},{"company":"Blykalla","amount":50,"quarter":"2025/Q4","year":"2025","stage":"Series A","country":"Sweden","category":"nuclear_smr"},{"company":"Eavor","amount":50,"quarter":"2025/Q1","year":"2025","stage":"Series A","country":"Canada","category":"geothermal"},{"company":"Blue Energy Nuclear","amount":45,"quarter":"2024/Q4","year":"2024","stage":"Series A","country":"US","category":"nuclear_smr"},{"company":"Overstory","amount":43,"quarter":"2025/Q4","year":"2025","stage":"Series B","country":"US","category":"grid_wildfire"},{"company":"Armada","amount":40,"quarter":"2024/Q3","year":"2024","stage":"Series B","country":"US","category":"dc_modular"},{"company":"Heron Power","amount":38,"quarter":"2025/Q2","year":"2025","stage":"Series A","country":"Singapore","category":"grid_transformer"},{"company":"Iceotope","amount":36,"quarter":"2022/Q3","year":"2022","stage":"Series B","country":"UK","category":"cooling_d2c"},{"company":"Gridware","amount":26,"quarter":"2025/Q1","year":"2025","stage":"Series A","country":"US","category":"grid_wildfire"},{"company":"MetOx","amount":25,"quarter":"2024/Q3","year":"2024","stage":"Series B","country":"US","category":"grid_cables"},{"company":"Accelsius","amount":24,"quarter":"2024/Q4","year":"2024","stage":"Series A","country":"US","category":"cooling_d2c"},{"company":"DG Matrix","amount":20,"quarter":"2025/Q1","year":"2025","stage":"Series A","country":"US","category":"grid_transformer"}];
 
-    const years = ['2021', '2022', '2023', '2024', '2025'];
-    const stages = ['Seed', 'Series A', 'Series B', 'Growth Equity'];
-    const groups = ['DC/Computing', 'Generation', 'Grid', 'Storage', 'Other'];
+    const years = ['2021','2022','2023','2024','2025'];
+    const stages = ['Seed','Series A','Series B','Growth Equity'];
+    const groups = ['DC/Computing','Generation','Grid','Storage','Other'];
 
     function Dashboard() {
-      const [selectedCategory, setSelectedCategory] = useState(null);
-      const [selectedYear, setSelectedYear] = useState('all');
-      const [selectedStage, setSelectedStage] = useState('all');
-      const [selectedGroup, setSelectedGroup] = useState('all');
+      const [selCat, setSelCat] = useState(null);
+      const [selYear, setSelYear] = useState('all');
+      const [selStages, setSelStages] = useState(new Set(stages));
+      const [selGroup, setSelGroup] = useState('all');
       const [sortBy, setSortBy] = useState('total');
 
-      const categoryStats = useMemo(() => {
-        return Object.entries(categoryYearStageData).map(([id, yearData]) => {
-          const meta = categoryMeta[id] || { name: id, color: '#94a3b8', group: 'Other' };
-          const yearAmounts = {};
-          let total = 0;
-          let count = 0;
-          
-          years.forEach(year => {
-            let yearTotal = 0;
-            let yearCount = 0;
-            if (yearData[year]) {
-              Object.entries(yearData[year]).forEach(([stage, vals]) => {
-                if (selectedStage === 'all' || selectedStage === stage) {
-                  yearTotal += vals.amount;
-                  yearCount += vals.count;
-                }
-              });
-            }
-            yearAmounts[year] = { amount: yearTotal, count: yearCount };
-            total += yearTotal;
-            count += yearCount;
+      const toggleStage = (s) => {
+        const n = new Set(selStages);
+        if (n.has(s)) { if (n.size > 1) n.delete(s); } else { n.add(s); }
+        setSelStages(n);
+      };
+
+      const catStats = useMemo(() => {
+        return Object.entries(catYearStage).map(([id, yd]) => {
+          const meta = catMeta[id] || { name: id, color: '#94a3b8', group: 'Other' };
+          const ya = {}; let total = 0, count = 0;
+          years.forEach(y => {
+            let yt = 0, yc = 0;
+            if (yd[y]) Object.entries(yd[y]).forEach(([st, v]) => { if (selStages.has(st)) { yt += v.amount; yc += v.count; }});
+            ya[y] = { amount: yt, count: yc }; total += yt; count += yc;
           });
-          
-          const y2024 = yearAmounts['2024']?.amount || 0;
-          const y2025 = yearAmounts['2025']?.amount || 0;
-          const growth = y2024 > 0 ? ((y2025 - y2024) / y2024 * 100) : (y2025 > 0 ? 999 : 0);
-          
-          return { id, ...meta, total, count, yearAmounts, y2024, y2025, growth };
+          const y24 = ya['2024']?.amount || 0, y25 = ya['2025']?.amount || 0;
+          const growth = y24 > 0 ? ((y25 - y24) / y24 * 100) : (y25 > 0 ? 999 : 0);
+          return { id, ...meta, total, count, ya, growth };
         });
-      }, [selectedStage]);
+      }, [selStages]);
 
-      const filteredCategories = useMemo(() => {
-        let cats = categoryStats.filter(c => c.total > 0);
-        if (selectedGroup !== 'all') cats = cats.filter(c => c.group === selectedGroup);
-        
-        cats.sort((a, b) => {
-          if (sortBy === 'total') return b.total - a.total;
-          if (sortBy === 'growth') return b.growth - a.growth;
-          if (sortBy === '2025') return (b.yearAmounts['2025']?.amount || 0) - (a.yearAmounts['2025']?.amount || 0);
-          return b.count - a.count;
-        });
-        return cats;
-      }, [categoryStats, selectedGroup, sortBy]);
+      const filtCats = useMemo(() => {
+        let c = catStats.filter(x => x.total > 0);
+        if (selGroup !== 'all') c = c.filter(x => x.group === selGroup);
+        if (sortBy === 'total') c.sort((a,b) => b.total - a.total);
+        else if (sortBy === 'growth') c.sort((a,b) => b.growth - a.growth);
+        else if (sortBy === '2025') c.sort((a,b) => (b.ya['2025']?.amount||0) - (a.ya['2025']?.amount||0));
+        return c;
+      }, [catStats, selGroup, sortBy]);
 
-      const filteredDeals = useMemo(() => {
-        let deals = allDeals;
-        if (selectedCategory) deals = deals.filter(d => d.category === selectedCategory);
-        if (selectedYear !== 'all') deals = deals.filter(d => d.year === selectedYear);
-        if (selectedStage !== 'all') deals = deals.filter(d => d.stage === selectedStage);
-        if (selectedGroup !== 'all') {
-          const groupCats = Object.entries(categoryMeta).filter(([k,v]) => v.group === selectedGroup).map(([k]) => k);
-          deals = deals.filter(d => groupCats.includes(d.category));
+      const filtDeals = useMemo(() => {
+        let d = allDeals;
+        if (selCat) d = d.filter(x => x.category === selCat);
+        if (selYear !== 'all') d = d.filter(x => x.year === selYear);
+        if (selStages.size < stages.length) d = d.filter(x => selStages.has(x.stage));
+        if (selGroup !== 'all') {
+          const gc = Object.entries(catMeta).filter(([k,v]) => v.group === selGroup).map(([k]) => k);
+          d = d.filter(x => gc.includes(x.category));
         }
-        return deals.sort((a, b) => b.amount - a.amount);
-      }, [selectedCategory, selectedYear, selectedStage, selectedGroup]);
+        return d.sort((a,b) => b.amount - a.amount);
+      }, [selCat, selYear, selStages, selGroup]);
 
-      const yearlyTrendData = useMemo(() => {
-        return years.map(year => {
-          const row = { year };
-          groups.forEach(group => {
-            const groupCats = categoryStats.filter(c => c.group === group);
-            row[group] = groupCats.reduce((sum, c) => sum + (c.yearAmounts[year]?.amount || 0), 0) / 1000;
-          });
-          return row;
+      const selCatData = selCat ? catStats.find(c => c.id === selCat) : null;
+
+      const trendData = useMemo(() => years.map(y => {
+        const r = { year: y };
+        groups.forEach(g => { r[g] = catStats.filter(c => c.group === g).reduce((s,c) => s + (c.ya[y]?.amount||0), 0) / 1000; });
+        return r;
+      }), [catStats]);
+
+      const dcData = useMemo(() => {
+        const dc = ['dc_general','ee_computing','cooling_immersion'];
+        return years.map(y => {
+          const r = { year: y };
+          dc.forEach(id => { const c = catStats.find(x => x.id === id); r[id] = c ? (c.ya[y]?.amount||0) : 0; });
+          return r;
         });
-      }, [categoryStats]);
+      }, [catStats]);
 
-      const dcTrendData = useMemo(() => {
-        const dcCats = ['dc_general', 'ee_computing', 'ee_chips', 'cooling_immersion'];
-        return years.map(year => {
-          const row = { year };
-          dcCats.forEach(catId => {
-            const cat = categoryStats.find(c => c.id === catId);
-            row[catId] = cat ? (cat.yearAmounts[year]?.amount || 0) : 0;
-          });
-          return row;
-        });
-      }, [categoryStats]);
-
-      const totals = useMemo(() => {
-        const total = categoryStats.reduce((sum, c) => sum + c.total, 0);
-        const count = categoryStats.reduce((sum, c) => sum + c.count, 0);
-        return { total, count };
-      }, [categoryStats]);
-
-      const selectedCatData = selectedCategory ? categoryStats.find(c => c.id === selectedCategory) : null;
+      const totals = useMemo(() => ({ total: catStats.reduce((s,c) => s + c.total, 0), count: catStats.reduce((s,c) => s + c.count, 0) }), [catStats]);
 
       return (
-        <div style={{ padding: '24px 32px', maxWidth: 1500, margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>
-              AI Infrastructure Investment Dashboard
-            </h1>
-            <p style={{ color: '#64748b', fontSize: 13 }}>
-              エネルギー・電力セクター (2021-2025) | {totals.count.toLocaleString()}件 | ${(totals.total/1000).toFixed(1)}B | Source: i3 Connect
-            </p>
+        <div style={{ padding: '18px 24px', maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ marginBottom: 14 }}>
+            <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', marginBottom: 3 }}>AI Infrastructure Investment Dashboard</h1>
+            <p style={{ color: '#64748b', fontSize: 11 }}>エネルギー・電力セクター (2021-2025) | {totals.count.toLocaleString()}件 | ${(totals.total/1000).toFixed(1)}B</p>
           </div>
 
-          {/* フィルター行 */}
-          <div style={{ display: 'flex', gap: 24, marginBottom: 16, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#64748b' }}>グループ:</span>
-              <button className={`filter-btn ${selectedGroup === 'all' ? 'active' : ''}`} onClick={() => setSelectedGroup('all')}>All</button>
-              {groups.map(g => (
-                <button key={g} className={`filter-btn ${selectedGroup === g ? 'active' : ''}`} onClick={() => setSelectedGroup(g)}>{g}</button>
-              ))}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 9, color: '#64748b', marginRight: 3 }}>グループ:</span>
+              <button className={'filter-btn' + (selGroup === 'all' ? ' active' : '')} onClick={() => setSelGroup('all')}>All</button>
+              {groups.map(g => <button key={g} className={'filter-btn' + (selGroup === g ? ' active' : '')} onClick={() => setSelGroup(g)}>{g}</button>)}
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#64748b' }}>ステージ:</span>
-              <button className={`filter-btn ${selectedStage === 'all' ? 'active' : ''}`} onClick={() => setSelectedStage('all')}>All</button>
-              {stages.map(s => (
-                <button key={s} className={`filter-btn ${selectedStage === s ? 'active' : ''}`} onClick={() => setSelectedStage(s)}>{s}</button>
-              ))}
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <span style={{ fontSize: 9, color: '#64748b', marginRight: 3 }}>ステージ:</span>
+              <button className={'stage-btn' + (selStages.size === stages.length ? ' active' : '')} onClick={() => setSelStages(new Set(stages))}>All</button>
+              {stages.map(s => <button key={s} className={'stage-btn' + (selStages.has(s) ? ' active' : '')} onClick={() => toggleStage(s)}>{s}</button>)}
             </div>
           </div>
 
-          {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 20 }}>
-            <div className="metric-card">
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>${(totals.total/1000).toFixed(1)}B</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>総投資額</div>
-            </div>
-            <div className="metric-card">
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>{totals.count.toLocaleString()}</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>総ディール数</div>
-            </div>
-            <div className="metric-card">
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#2563eb' }}>${((categoryStats.find(c=>c.id==='dc_general')?.total||0)/1000).toFixed(1)}B</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>データセンター</div>
-            </div>
-            <div className="metric-card">
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#16a34a' }}>${((categoryStats.filter(c=>c.group==='Generation').reduce((s,c)=>s+c.total,0))/1000).toFixed(1)}B</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>発電（原子力・地熱）</div>
-            </div>
-            <div className="metric-card">
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0891b2' }}>${((categoryStats.filter(c=>c.group==='Grid').reduce((s,c)=>s+c.total,0))/1000).toFixed(1)}B</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>送電網</div>
-            </div>
-            <div className="metric-card">
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#db2777' }}>${((categoryStats.filter(c=>c.group==='Storage').reduce((s,c)=>s+c.total,0))/1000).toFixed(1)}B</div>
-              <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>蓄電</div>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 14 }}>
+            <div className="metric-card"><div style={{ fontSize: 16, fontWeight: 700 }}>${(totals.total/1000).toFixed(1)}B</div><div style={{ fontSize: 9, color: '#64748b' }}>総投資額</div></div>
+            <div className="metric-card"><div style={{ fontSize: 16, fontWeight: 700 }}>{totals.count.toLocaleString()}</div><div style={{ fontSize: 9, color: '#64748b' }}>総ディール数</div></div>
+            <div className="metric-card"><div style={{ fontSize: 16, fontWeight: 700, color: '#2563eb' }}>${((catStats.find(c=>c.id==='dc_general')?.total||0)/1000).toFixed(1)}B</div><div style={{ fontSize: 9, color: '#64748b' }}>データセンター</div></div>
+            <div className="metric-card"><div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>${((catStats.filter(c=>c.group==='Generation').reduce((s,c)=>s+c.total,0))/1000).toFixed(1)}B</div><div style={{ fontSize: 9, color: '#64748b' }}>発電</div></div>
+            <div className="metric-card"><div style={{ fontSize: 16, fontWeight: 700, color: '#0891b2' }}>${((catStats.filter(c=>c.group==='Grid').reduce((s,c)=>s+c.total,0))/1000).toFixed(1)}B</div><div style={{ fontSize: 9, color: '#64748b' }}>送電網</div></div>
+            <div className="metric-card"><div style={{ fontSize: 16, fontWeight: 700, color: '#db2777' }}>${((catStats.filter(c=>c.group==='Storage').reduce((s,c)=>s+c.total,0))/1000).toFixed(1)}B</div><div style={{ fontSize: 9, color: '#64748b' }}>蓄電</div></div>
           </div>
 
-          {/* Main Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 12, marginBottom: 14 }}>
             <div className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div className="section-title" style={{ marginBottom: 0 }}>セクター別内訳（年別 $M）</div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button className={`filter-btn ${sortBy === 'total' ? 'active' : ''}`} onClick={() => setSortBy('total')}>累計</button>
-                  <button className={`filter-btn ${sortBy === '2025' ? 'active' : ''}`} onClick={() => setSortBy('2025')}>2025</button>
-                  <button className={`filter-btn ${sortBy === 'growth' ? 'active' : ''}`} onClick={() => setSortBy('growth')}>成長率</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div className="section-title" style={{ marginBottom: 0 }}>セクター別内訳（$M）</div>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  <button className={'filter-btn' + (sortBy === 'total' ? ' active' : '')} onClick={() => setSortBy('total')}>累計</button>
+                  <button className={'filter-btn' + (sortBy === '2025' ? ' active' : '')} onClick={() => setSortBy('2025')}>2025</button>
+                  <button className={'filter-btn' + (sortBy === 'growth' ? ' active' : '')} onClick={() => setSortBy('growth')}>成長率</button>
                 </div>
               </div>
-              
-              <div style={{ fontSize: 9, color: '#94a3b8', display: 'grid', gridTemplateColumns: '2fr repeat(5, 1fr) 70px 60px', padding: '4px 10px', borderBottom: '1px solid #e2e8f0', fontWeight: 600 }}>
-                <div>セクター</div>
-                {years.map(y => <div key={y} className="year-cell">{y}</div>)}
-                <div style={{ textAlign: 'right' }}>累計</div>
-                <div style={{ textAlign: 'right' }}>YoY</div>
+              <div style={{ fontSize: 8, color: '#94a3b8', display: 'grid', gridTemplateColumns: '2fr repeat(5, 1fr) 65px 50px', padding: '3px 8px', borderBottom: '1px solid #e2e8f0', fontWeight: 600 }}>
+                <div>セクター</div>{years.map(y => <div key={y} className="year-cell">{y}</div>)}<div style={{ textAlign: 'right' }}>累計</div><div style={{ textAlign: 'right' }}>YoY</div>
               </div>
-              
-              <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-                {filteredCategories.map(cat => (
-                  <div key={cat.id} className={`category-row ${selectedCategory === cat.id ? 'selected' : ''}`} onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: cat.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{cat.name}</span>
-                    </div>
-                    {years.map(y => (
-                      <div key={y} className="year-cell" style={{ color: (cat.yearAmounts[y]?.amount || 0) > 500 ? '#0f172a' : '#94a3b8', fontWeight: (cat.yearAmounts[y]?.amount || 0) > 1000 ? 600 : 400 }}>
-                        {cat.yearAmounts[y]?.amount ? Math.round(cat.yearAmounts[y].amount) : '-'}
-                      </div>
-                    ))}
-                    <div style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
-                      {cat.total >= 1000 ? `${(cat.total/1000).toFixed(1)}B` : `${Math.round(cat.total)}M`}
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: 10 }}>
-                      {cat.growth === 999 ? <span style={{ color: '#3b82f6' }}>NEW</span> : cat.growth > 0 ? <span style={{ color: '#16a34a' }}>+{Math.round(cat.growth)}%</span> : cat.growth < 0 ? <span style={{ color: '#dc2626' }}>{Math.round(cat.growth)}%</span> : '-'}
-                    </div>
+              <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+                {filtCats.map(c => (
+                  <div key={c.id} className={'cat-row' + (selCat === c.id ? ' selected' : '')} onClick={() => setSelCat(selCat === c.id ? null : c.id)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 7, height: 7, borderRadius: 2, background: c.color }} /><span style={{ fontSize: 9 }}>{c.name}</span></div>
+                    {years.map(y => <div key={y} className="year-cell" style={{ color: (c.ya[y]?.amount||0) > 500 ? '#0f172a' : '#94a3b8', fontWeight: (c.ya[y]?.amount||0) > 1000 ? 600 : 400 }}>{c.ya[y]?.amount ? Math.round(c.ya[y].amount) : '-'}</div>)}
+                    <div style={{ textAlign: 'right', fontWeight: 600 }}>{c.total >= 1000 ? `${(c.total/1000).toFixed(1)}B` : `${Math.round(c.total)}M`}</div>
+                    <div style={{ textAlign: 'right', fontSize: 8 }}>{c.growth === 999 ? <span style={{ color: '#3b82f6' }}>NEW</span> : c.growth > 0 ? <span style={{ color: '#16a34a' }}>+{Math.round(c.growth)}%</span> : c.growth < 0 ? <span style={{ color: '#dc2626' }}>{Math.round(c.growth)}%</span> : '-'}</div>
                   </div>
                 ))}
               </div>
             </div>
-
             <div className="card">
               <div className="section-title">年別投資トレンド（$B）</div>
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={yearlyTrendData} margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
-                  <XAxis dataKey="year" stroke="#94a3b8" fontSize={10} />
-                  <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={v => `${v.toFixed(0)}`} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 10 }} formatter={(v) => `$${v.toFixed(2)}B`} />
-                  <Legend wrapperStyle={{ fontSize: 9 }} />
+              <ResponsiveContainer width="100%" height={140}>
+                <AreaChart data={trendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <XAxis dataKey="year" stroke="#94a3b8" fontSize={8} /><YAxis stroke="#94a3b8" fontSize={8} tickFormatter={v => v.toFixed(0)} />
+                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 5, fontSize: 8 }} formatter={v => `$${v.toFixed(2)}B`} />
+                  <Legend wrapperStyle={{ fontSize: 7 }} />
                   <Area type="monotone" dataKey="DC/Computing" stackId="1" stroke="#2563eb" fill="#2563eb" fillOpacity={0.7} />
                   <Area type="monotone" dataKey="Generation" stackId="1" stroke="#16a34a" fill="#16a34a" fillOpacity={0.7} />
                   <Area type="monotone" dataKey="Grid" stackId="1" stroke="#0891b2" fill="#0891b2" fillOpacity={0.7} />
                   <Area type="monotone" dataKey="Storage" stackId="1" stroke="#db2777" fill="#db2777" fillOpacity={0.7} />
                 </AreaChart>
               </ResponsiveContainer>
-
-              <div className="section-title" style={{ marginTop: 12 }}>DC/Computing 詳細</div>
-              <ResponsiveContainer width="100%" height={140}>
-                <LineChart data={dcTrendData} margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
-                  <XAxis dataKey="year" stroke="#94a3b8" fontSize={10} />
-                  <YAxis stroke="#94a3b8" fontSize={10} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}B` : `${v}M`} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 10 }} formatter={(v) => `$${v.toFixed(0)}M`} />
-                  <Legend wrapperStyle={{ fontSize: 8 }} />
+              <div className="section-title" style={{ marginTop: 8 }}>DC/Computing詳細</div>
+              <ResponsiveContainer width="100%" height={110}>
+                <LineChart data={dcData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <XAxis dataKey="year" stroke="#94a3b8" fontSize={8} /><YAxis stroke="#94a3b8" fontSize={8} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}B` : `${v}M`} />
+                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 5, fontSize: 8 }} formatter={v => `$${v}M`} />
+                  <Legend wrapperStyle={{ fontSize: 7 }} />
                   <Line type="monotone" dataKey="dc_general" name="DC汎用" stroke="#2563eb" strokeWidth={2} dot={{ r: 2 }} />
                   <Line type="monotone" dataKey="ee_computing" name="省エネコンピュ" stroke="#7c3aed" strokeWidth={2} dot={{ r: 2 }} />
                   <Line type="monotone" dataKey="cooling_immersion" name="液浸冷却" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 2 }} />
@@ -362,64 +223,36 @@
             </div>
           </div>
 
-          {/* Deal List */}
           <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div className="section-title" style={{ marginBottom: 0 }}>
-                主要ディール（$50M以上）
-                {selectedCatData && (
-                  <span style={{ marginLeft: 8, padding: '2px 8px', background: `${selectedCatData.color}20`, color: selectedCatData.color, borderRadius: 4, fontSize: 10 }}>
-                    {selectedCatData.name}
-                    <span style={{ marginLeft: 4, cursor: 'pointer', opacity: 0.7 }} onClick={(e) => { e.stopPropagation(); setSelectedCategory(null); }}>✕</span>
-                  </span>
-                )}
+                主要ディール（$20M以上）
+                {selCatData && <span style={{ marginLeft: 6, padding: '2px 6px', background: selCatData.color + '20', color: selCatData.color, borderRadius: 4, fontSize: 8 }}>{selCatData.name}<span style={{ marginLeft: 3, cursor: 'pointer' }} onClick={e => { e.stopPropagation(); setSelCat(null); }}>✕</span></span>}
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                  <option value="all">全期間</option>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-                <span style={{ fontSize: 10, color: '#94a3b8' }}>{filteredDeals.length}件</span>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <select value={selYear} onChange={e => setSelYear(e.target.value)}><option value="all">全期間</option>{years.map(y => <option key={y} value={y}>{y}</option>)}</select>
+                <span style={{ fontSize: 9, color: '#94a3b8' }}>{filtDeals.length}件</span>
               </div>
             </div>
-
-            <div style={{ fontSize: 9, color: '#94a3b8', display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '4px 12px', borderBottom: '1px solid #e2e8f0', fontWeight: 600 }}>
-              <div>企業名</div>
-              <div>金額</div>
-              <div>四半期</div>
-              <div>ステージ</div>
-              <div>国</div>
+            <div style={{ fontSize: 8, color: '#94a3b8', display: 'grid', gridTemplateColumns: '2fr 0.7fr 0.7fr 1fr 1fr', padding: '3px 10px', borderBottom: '1px solid #e2e8f0', fontWeight: 600 }}>
+              <div>企業名</div><div>金額</div><div>四半期</div><div>ステージ</div><div>国</div>
             </div>
-            
-            <div style={{ maxHeight: 280, overflowY: 'auto' }}>
-              {filteredDeals.slice(0, 40).map((deal, i) => {
-                const cat = categoryMeta[deal.category] || { color: '#94a3b8' };
+            <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+              {filtDeals.slice(0, 80).map((d, i) => {
+                const cm = catMeta[d.category] || { color: '#94a3b8' };
                 return (
                   <div key={i} className="deal-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: 2, background: cat.color }} />
-                      <span style={{ fontWeight: 500 }}>{deal.company}</span>
-                    </div>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>
-                      ${deal.amount >= 1000 ? (deal.amount/1000).toFixed(1) + 'B' : deal.amount.toFixed(0) + 'M'}
-                    </div>
-                    <div style={{ color: '#64748b' }}>{deal.quarter}</div>
-                    <div>
-                      <span className="badge" style={{ 
-                        background: deal.stage === 'Growth Equity' ? '#dcfce7' : deal.stage === 'Series B' ? '#dbeafe' : deal.stage === 'Series A' ? '#fef3c7' : '#f1f5f9',
-                        color: deal.stage === 'Growth Equity' ? '#166534' : deal.stage === 'Series B' ? '#1e40af' : deal.stage === 'Series A' ? '#92400e' : '#475569'
-                      }}>{deal.stage}</span>
-                    </div>
-                    <div style={{ color: '#64748b', fontSize: 11 }}>{deal.country}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}><div style={{ width: 5, height: 5, borderRadius: 2, background: cm.color }} /><span style={{ fontWeight: 500 }}>{d.company}</span></div>
+                    <div style={{ fontWeight: 600 }}>${d.amount >= 1000 ? (d.amount/1000).toFixed(1) + 'B' : d.amount + 'M'}</div>
+                    <div style={{ color: '#64748b' }}>{d.quarter}</div>
+                    <div><span className="badge" style={{ background: d.stage === 'Growth Equity' ? '#dcfce7' : d.stage === 'Series B' ? '#dbeafe' : d.stage === 'Series A' ? '#fef3c7' : '#f1f5f9', color: d.stage === 'Growth Equity' ? '#166534' : d.stage === 'Series B' ? '#1e40af' : d.stage === 'Series A' ? '#92400e' : '#475569' }}>{d.stage}</span></div>
+                    <div style={{ color: '#64748b', fontSize: 9 }}>{d.country}</div>
                   </div>
                 );
               })}
             </div>
           </div>
-
-          <div style={{ textAlign: 'center', marginTop: 24, color: '#94a3b8', fontSize: 10 }}>
-            Data Source: i3 Connect | Period: 2021-2025 | Updated: 2025
-          </div>
+          <div style={{ textAlign: 'center', marginTop: 16, color: '#94a3b8', fontSize: 8 }}>Data Source: i3 Connect | 2021-2025</div>
         </div>
       );
     }
